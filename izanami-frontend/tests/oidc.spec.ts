@@ -69,7 +69,7 @@ test.describe("Global settings page should", () => {
     await page.getByRole("checkbox", { name: "Use PKCE flow" }).check();
     await page.getByRole("combobox", { name: "PKCE Algorithm" }).click();
     await page.getByRole("option", { name: "HMAC-SHA256" }).click();
-    await page.getByRole("button", { name: "Update configuration" }).click();
+    //await page.getByRole("button", { name: "Update configuration" }).click();
 
     await page.getByRole("textbox", { name: "Role claim" }).fill("roles");
     await page.getByRole("combobox", { name: "Role right mode" }).click();

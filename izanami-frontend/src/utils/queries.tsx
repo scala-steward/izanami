@@ -33,6 +33,7 @@ import {
   OIDCSettings,
   TProjectLevel,
   TokenGlobalRight,
+  ImportError,
 } from "./types";
 import { isArray } from "lodash";
 import toast from "react-hot-toast";
@@ -205,21 +206,35 @@ export function deletePersonnalAccessToken(user: string, id: string) {
   );
 }
 
+function capitalizeFirstLetter(val: string) {
+  return String(val).charAt(0).toUpperCase() + String(val).slice(1);
+}
+
 export function importData(
   tenant: string,
   importRequest: ImportRequest,
-): Promise<{ messages: string[]; conflicts?: object[] }> {
+): Promise<ImportError> {
+  let queryParams: { [x: string]: string } = {
+    conflict: importRequest.conflictStrategy,
+    version: "2",
+  };
+  queryParams = Object.entries(importRequest.featureConflict ?? {})
+    .filter(([key, value]) => value)
+    .reduce((acc, [key, value]) => {
+      acc[`feature${capitalizeFirstLetter(key)}`] = value;
+      return acc;
+    }, queryParams);
+
+  const queryParamString = new URLSearchParams(queryParams).toString();
+
   const data = new FormData();
   data.append("export", importRequest.file.item(0)!);
   return handleFetchJsonResponse(
-    fetch(
-      `/api/admin/tenants/${tenant}/_import?version=2&conflict=${importRequest.conflictStrategy}`,
-      {
-        method: "POST",
-        body: data,
-      },
-    ).then((res) => {
-      if (res.status === 409) {
+    fetch(`/api/admin/tenants/${tenant}/_import?${queryParamString}`, {
+      method: "POST",
+      body: data,
+    }).then((res) => {
+      if (res.status === 400) {
         return res.json().then((json) => {
           return {
             json: () => Promise.resolve(json),

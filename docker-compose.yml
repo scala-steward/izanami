@@ -145,8 +145,11 @@ services:
         }
     volumes:
       - .:/tmp/config:ro
+      - "/etc/localtime:/etc/localtime:ro"
   db:
-    image: postgres
+    image: postgres:17.5
+    volumes:
+      - "/etc/localtime:/etc/localtime:ro"
     restart: always
     environment:
       POSTGRES_USER: postgres
@@ -163,11 +166,15 @@ services:
   #    - 9001:9000
   fake-smtp:
     image: reachfive/fake-smtp-server
+    volumes:
+      - "/etc/localtime:/etc/localtime:ro"
     ports:
       - 1081:1025
       - 1080:1080
   wasm-manager:
     image: maif/wasmo:1.4.1
+    volumes:
+      - "/etc/localtime:/etc/localtime:ro"
     networks:
       - manager-network
     #entrypoint: ["/bin/sh", "-c", "npm config set strict-ssl false"]
@@ -223,6 +230,8 @@ services:
 #      retries: 100
   ninjaS3:
     image: scireum/s3-ninja:latest
+    volumes:
+      - "/etc/localtime:/etc/localtime:ro"
     networks:
       - manager-network
     ports:

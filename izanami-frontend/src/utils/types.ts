@@ -1,5 +1,13 @@
 import { isArray } from "lodash";
 
+
+export type ImportError = {
+  message?: string;
+  details?: ImportErrorDetails
+}
+
+export type ImportErrorDetails = {[itempType: string]: {order: number, failures: {row: string, error: string}[] }}
+
 export interface Option {
   value: string;
   label: string;
@@ -778,6 +786,15 @@ export type IzanamiTenantExportRequest = {
 export type ImportRequest = {
   file: FileList;
   conflictStrategy: string;
+  fineTuneFeatureConflict: boolean;
+  featureConflict?: {
+    name: string;
+    description: string;
+    tags: string;
+    project: string;
+    enabling: string;
+    conditions: string;
+  };
 };
 
 export interface LightWebhook {

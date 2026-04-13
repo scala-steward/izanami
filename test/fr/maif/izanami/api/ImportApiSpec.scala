@@ -1,36 +1,935 @@
 package fr.maif.izanami.api
 
-import fr.maif.izanami.api.BaseAPISpec.{
-  TestFeature,
-  TestFeatureContext,
-  TestPersonnalAccessToken,
-  TestProject,
-  TestRights,
-  TestSituationBuilder,
-  TestTenant,
-  TestTenantRight,
-  TestUser,
-  TestWasmConfig,
-  enabledFeatureBase64,
-  importWithToken
-}
+import fr.maif.izanami.api.BaseAPISpec.TestFeature
+import fr.maif.izanami.api.BaseAPISpec.TestFeatureContext
+import fr.maif.izanami.api.BaseAPISpec.TestPersonnalAccessToken
+import fr.maif.izanami.api.BaseAPISpec.TestProject
+import fr.maif.izanami.api.BaseAPISpec.TestRights
+import fr.maif.izanami.api.BaseAPISpec.TestSituationBuilder
+import fr.maif.izanami.api.BaseAPISpec.TestTenant
+import fr.maif.izanami.api.BaseAPISpec.TestUser
+import fr.maif.izanami.api.BaseAPISpec.TestWasmConfig
+import fr.maif.izanami.api.BaseAPISpec.enabledFeatureBase64
+import fr.maif.izanami.api.BaseAPISpec.importWithToken
 import org.scalatest.matchers.should.Matchers.should
-import play.api.http.Status.{
-  ACCEPTED,
-  BAD_REQUEST,
-  CREATED,
-  FORBIDDEN,
-  NOT_FOUND,
-  NO_CONTENT,
-  OK,
-  UNAUTHORIZED
-}
-import play.api.libs.json.{JsNull, JsObject, Json}
+import org.awaitility.Awaitility.await
+import play.api.http.Status.ACCEPTED
+import play.api.http.Status.CREATED
+import play.api.http.Status.FORBIDDEN
+import play.api.http.Status.NOT_FOUND
+import play.api.http.Status.NO_CONTENT
+import play.api.http.Status.OK
+import play.api.http.Status.UNAUTHORIZED
+import play.api.libs.json.JsArray
+import play.api.libs.json.JsObject
+import play.api.libs.json.Json
+import play.api.http.Status.*
 
 import java.util.UUID
+import scala.collection.mutable.ArrayBuffer
+import org.apache.pekko.http.scaladsl.model.sse.ServerSentEvent
+import fr.maif.izanami.api.BaseAPISpec.TestApiKey
+import scala.concurrent.duration.SECONDS
+import play.api.libs.json.JsValue
 
 class ImportApiSpec extends BaseAPISpec {
+
+  type ImportedType = String
+  type ImportedRow = String
+  type ImportErrorMessage = String
+  def extractFailedElements(importFailureResponse: JsValue)
+      : Map[ImportedType, Seq[(ImportErrorMessage, ImportedRow)]] = {
+    val maybeDetails = (importFailureResponse \ "details").asOpt[JsObject]
+
+    maybeDetails.fold(Map(): Map[ImportedType, Seq[(
+        ImportErrorMessage,
+        ImportedRow
+    )]])(details => {
+      details.value.map((importedType, typeInfo) => {
+        val failedArray = (typeInfo \ "failures").as[JsArray].value.map(json => {
+          val error = (json \ "error").as[ImportErrorMessage];
+          val row = (json \ "row").as[ImportedRow];
+          (error, row)
+        }).toSeq;
+        (importedType, failedArray)
+      }).toMap
+    })
+  }
+
+  def extractRowFieldAndError(
+      rows: Seq[(ImportErrorMessage, ImportedRow)],
+      fieldName: String
+  ): Seq[(ImportErrorMessage, String)] = {
+    rows.flatMap((error, json) =>
+      (Json.parse(json) \ fieldName).asOpt[String].map(v =>
+        (error, v)
+      ).toSeq
+    )
+  }
+
   "V2 feature import" should {
+    "fail if row with the same id already exist (fail strategy)" in {
+      val situation = TestSituationBuilder()
+        .withTenants(TestTenant("testtenant").withApiKeys(TestApiKey(
+          name = "mykey",
+          enabled = true,
+          admin = true
+        )))
+        .loggedInWithAdminRights()
+        .build()
+
+      val data = Seq(
+        """{"row":{"id":"f049894f-fc2d-4335-b3a5-1a2a9af242b8","name":"test-project","description":""},"_type":"project"}""",
+        """{"row":{"id":"00273cce-5b8e-447b-8a2e-0ba8d39bdea8","name":"foobar","value":null,"enabled":false,"project":"test-project","metadata":{},"conditions":[{"rule":{"percentage":10},"period":null}],"created_at":"2026-04-13T14:14:39.312741+00:00","description":"foo","result_type":"boolean","script_config":null},"_type":"feature"}"""
+      )
+
+      var res = situation.importV2(
+        "testtenant",
+        data = data,
+        conflictStrategy = "fail"
+      )
+
+      res.status mustEqual OK
+
+      res = situation.importV2(
+        "testtenant",
+        data = data,
+        conflictStrategy = "fail"
+      )
+
+      res.status mustEqual BAD_REQUEST
+    }
+
+    "fail on incorrect row with known type" in {
+      val situation = TestSituationBuilder()
+        .withTenants(TestTenant("testtenant").withApiKeys(TestApiKey(
+          name = "mykey",
+          enabled = true,
+          admin = true
+        )))
+        .loggedInWithAdminRights()
+        .build()
+      val data = Seq(
+        """{"row":{"id":"f049894f-fc2d-4335-b3a5-1a2a9af242b8","name":"test-project","description":""},"_type":"project"}""",
+        """{"row":{"id":"f049894f-fc2d-4335-b3a5-1a2a9af242b9","description":""},"_type":"project"}""",
+        """{"row":{"name":"test-project2","description":""},"_type":"project"}""",
+        """{"row":{"id":"00273cce-5b8e-447b-8a2e-0ba8d39bdea8","name":"foobar","value":null,"enabled":false,"project":"test-project","metadata":{},"conditions":[{"rule":{"percentage":10},"period":null}],"created_at":"2026-04-13T14:14:39.312741+00:00","description":"foo","result_type":"boolean","script_config":null},"_type":"feature"}""",
+        """{"row":{"name":"foobar2","value":null,"enabled":false,"project":"test-project","metadata":{},"conditions":[{"rule":{"percentage":10},"period":null}],"created_at":"2026-04-13T14:14:39.312741+00:00","description":"foo","result_type":"boolean","script_config":null},"_type":"feature"}""",
+        """{"row":{"id":"00273cce-5b8e-447b-8a2e-0ba8d39bdea7","value":null,"enabled":false,"project":"test-project","metadata":{},"conditions":[{"rule":{"percentage":10},"period":null}],"created_at":"2026-04-13T14:14:39.312741+00:00","description":"foo","result_type":"boolean","script_config":null},"_type":"feature"}"""
+      )
+
+      val res = situation.importV2(
+        "testtenant",
+        data = data,
+        conflictStrategy = "skip"
+      )
+
+      res.status mustEqual BAD_REQUEST
+      println(s"RESULT ${res.json.get}")
+
+      val failedElements = extractFailedElements(res.json.get)
+
+      val featureAnomalies = failedElements("Feature")
+      println(s"FAILED ${featureAnomalies}")
+
+      val projectAnomalies = failedElements("Project")
+
+      featureAnomalies must have size 2
+      extractRowFieldAndError(
+        featureAnomalies,
+        "id"
+      ) must contain theSameElementsAs (Seq((
+        "Row is missing a value for field name",
+        "00273cce-5b8e-447b-8a2e-0ba8d39bdea7"
+      )));
+
+      extractRowFieldAndError(
+        featureAnomalies,
+        "name"
+      ) must contain theSameElementsAs (Seq((
+        "Row is missing a value for field id",
+        "foobar2"
+      )))
+
+      extractRowFieldAndError(
+        projectAnomalies,
+        "id"
+      ) must contain theSameElementsAs (Seq((
+        "Row is missing a value for field name",
+        "f049894f-fc2d-4335-b3a5-1a2a9af242b9"
+      )))
+      extractRowFieldAndError(
+        projectAnomalies,
+        "name"
+      ) must contain theSameElementsAs (Seq((
+        "Row is missing a value for field id",
+        "test-project2"
+      )))
+
+    }
+
+    "fail on incorrect row" in {
+      val situation = TestSituationBuilder()
+        .withTenants(TestTenant("testtenant").withApiKeys(TestApiKey(
+          name = "mykey",
+          enabled = true,
+          admin = true
+        )))
+        .loggedInWithAdminRights()
+        .build()
+      val data = Seq(
+        """{"row":{"id":"f049894f-fc2d-4335-b3a5-1a2a9af242b8","name":"test-project","description":""},"_type":"project"}""",
+        """{"row":{"id":"f049894f-fc2d-4335-b3a5-1a2a9af242b8","name":"test-project","description":""},"_type":"projectFOOBAR"}""",
+        """{"row":{"id":"00273cce-5b8e-447b-8a2e-0ba8d39bdea8","name":"foobar","value":null,"enabled":false,"project":"test-project","metadata":{},"conditions":[{"rule":{"percentage":10},"period":null}],"created_at":"2026-04-13T14:14:39.312741+00:00","description":"foo","result_type":"boolean","script_config":null},"_type":"feature"}""",
+        """{"row":{"name":"foobar2","value":null,"enabled":false,"project":"test-project","metadata":{},"conditions":[{"rule":{"percentage":10},"period":null}],"created_at":"2026-04-13T14:14:39.312741+00:00","description":"foo","result_type":"boolean","script_config":null}}""",
+        """{"_type":"feature"}"""
+      )
+
+      val res = situation.importV2(
+        "testtenant",
+        data = data,
+        conflictStrategy = "skip"
+      )
+
+      res.status mustEqual BAD_REQUEST
+
+      val failedElements = extractFailedElements(res.json.get)
+
+      val unknownAnomalies = failedElements("Unknown")
+
+      unknownAnomalies must have size 3
+
+      unknownAnomalies must contain theSameElementsAs (Seq(
+        (
+          "Import type projectFOOBAR is unknown",
+          """{"row":{"id":"f049894f-fc2d-4335-b3a5-1a2a9af242b8","name":"test-project","description":""},"_type":"projectFOOBAR"}"""
+        ),
+        (
+          "This row is missing _type attribue",
+          """{"row":{"name":"foobar2","value":null,"enabled":false,"project":"test-project","metadata":{},"conditions":[{"rule":{"percentage":10},"period":null}],"created_at":"2026-04-13T14:14:39.312741+00:00","description":"foo","result_type":"boolean","script_config":null}}"""
+        ),
+        ("This row is missing row attribue", """{"_type":"feature"}""")
+      ))
+    }
+
+    "fail on non json row" in {
+      val situation = TestSituationBuilder()
+        .withTenants(TestTenant("testtenant").withApiKeys(TestApiKey(
+          name = "mykey",
+          enabled = true,
+          admin = true
+        )))
+        .loggedInWithAdminRights()
+        .build()
+      val data = Seq(
+        """{"row":{"id":"f049894f-fc2d-4335-b3a5-1a2a9af242b8","name":"test-project","description":""},"_type":"project"}""",
+        """{"row":{"id":"f049894f-fc2d-4335-b3a5-1a2a9af242b8",""",
+        """{"row":{"id":"00273cce-5b8e-447b-8a2e-0ba8d39bdea8","name":"foobar","value":null,"enabled":false,"project":"test-project","metadata":{},"conditions":[{"rule":{"percentage":10},"period":null}],"created_at":"2026-04-13T14:14:39.312741+00:00","description":"foo","result_type":"boolean","script_config":null},"_type":"feature"}""",
+        """"enabled":false,"project":"test-project","metadata":{},"conditions":[{"rule":{"percentage":10},"period":null}],"created_at":"2026-04-13T14:14:39.312741+00:00","description":"foo","result_type":"boolean","script_config":null}}""",
+        """{"_type:"feature"}"""
+      )
+
+      val res = situation.importV2(
+        "testtenant",
+        data = data,
+        conflictStrategy = "skip"
+      )
+
+      res.status mustEqual BAD_REQUEST
+      val failedElements = extractFailedElements(res.json.get)
+
+      val unknownAnomalies = failedElements("Unknown")
+      unknownAnomalies must have size 3
+      unknownAnomalies must contain theSameElementsAs (Seq(
+        (
+          "This row is not valid JSON object",
+          """{"row":{"id":"f049894f-fc2d-4335-b3a5-1a2a9af242b8","""
+        ),
+        (
+          "This row is not valid JSON object",
+          """"enabled":false,"project":"test-project","metadata":{},"conditions":[{"rule":{"percentage":10},"period":null}],"created_at":"2026-04-13T14:14:39.312741+00:00","description":"foo","result_type":"boolean","script_config":null}}"""
+        ),
+        (
+          (
+            "This row is not valid JSON object",
+            """{"_type:"feature"}"""
+          )
+        )
+      ))
+
+    }
+
+    "indicate all failing rows" in {
+      val situation = TestSituationBuilder()
+        .withTenants(TestTenant("testtenant").withApiKeys(TestApiKey(
+          name = "mykey",
+          enabled = true,
+          admin = true
+        )))
+        .loggedInWithAdminRights()
+        .build()
+      val data = Seq(
+        """{"row":{"id":"f049894f-fc2d-4335-b3a5-1a2a9af242b8","name":"test-project","description":""},"_type":"project"}""",
+        """{"row":{"id":"f049894f-fc2d-4335-b3a5-1a2a9af242b9","name":"test-project","description":""},"_type":"project"}""",
+        """{"row":{"id":"f049894f-fc2d-4335-b3a5-1a2a9af242b7","name":"test-project","description":""},"_type":"project"}""",
+        """{"row":{"id":"00273cce-5b8e-447b-8a2e-0ba8d39bdea8","name":"foobar","value":null,"enabled":false,"project":"test-project","metadata":{},"conditions":[{"rule":{"percentage":10},"period":null}],"created_at":"2026-04-13T14:14:39.312741+00:00","description":"foo","result_type":"boolean","script_config":null},"_type":"feature"}""",
+        """{"row":{"id":"00273cce-5b8e-447b-8a2e-0ba8d39bdea9","name":"foobar","value":null,"enabled":false,"project":"test-project","metadata":{},"conditions":[{"rule":{"percentage":10},"period":null}],"created_at":"2026-04-13T14:14:39.312741+00:00","description":"foo","result_type":"boolean","script_config":null},"_type":"feature"}""",
+        """{"row":{"id":"00273cce-5b8e-447b-8a2e-0ba8d39bdea7","name":"foobar","value":null,"enabled":false,"project":"test-project","metadata":{},"conditions":[{"rule":{"percentage":10},"period":null}],"created_at":"2026-04-13T14:14:39.312741+00:00","description":"foo","result_type":"boolean","script_config":null},"_type":"feature"}"""
+      )
+
+      val res = situation.importV2(
+        "testtenant",
+        data = data,
+        conflictStrategy = "skip"
+      )
+      res.status mustEqual BAD_REQUEST
+
+      val failedElements = extractFailedElements(res.json.get)
+      val featureAnomalies = failedElements("Feature")
+      val projectAnomalies = failedElements("Project")
+
+      featureAnomalies must have size 2
+      featureAnomalies must contain theSameElementsAs (Seq(
+        (
+          "A feature with this name already exist for this project.",
+          """{"id":"00273cce-5b8e-447b-8a2e-0ba8d39bdea9","name":"foobar","value":null,"enabled":false,"project":"test-project","metadata":{},"conditions":[{"rule":{"percentage":10},"period":null}],"created_at":"2026-04-13T14:14:39.312741+00:00","description":"foo","result_type":"boolean","script_config":null}"""
+        ),
+        (
+          "A feature with this name already exist for this project.",
+          """{"id":"00273cce-5b8e-447b-8a2e-0ba8d39bdea7","name":"foobar","value":null,"enabled":false,"project":"test-project","metadata":{},"conditions":[{"rule":{"percentage":10},"period":null}],"created_at":"2026-04-13T14:14:39.312741+00:00","description":"foo","result_type":"boolean","script_config":null}"""
+        )
+      ))
+
+      projectAnomalies must have size 2
+      projectAnomalies must contain theSameElementsAs (Seq(
+        (
+          "A project with this name already exist",
+          """{"id":"f049894f-fc2d-4335-b3a5-1a2a9af242b9","name":"test-project","description":""}"""
+        ),
+        (
+          "A project with this name already exist",
+          """{"id":"f049894f-fc2d-4335-b3a5-1a2a9af242b7","name":"test-project","description":""}"""
+        )
+      ))
+    }
+
+    "not fail on duplicated rows" in {
+      val situation = TestSituationBuilder()
+        .withTenants(TestTenant("testtenant").withApiKeys(TestApiKey(
+          name = "mykey",
+          enabled = true,
+          admin = true
+        )))
+        .loggedInWithAdminRights()
+        .build()
+      val data = Seq(
+        """{"row":{"id":"f049894f-fc2d-4335-b3a5-1a2a9af242b8","name":"test-project","description":""},"_type":"project"}""",
+        """{"row":{"id":"00273cce-5b8e-447b-8a2e-0ba8d39bdea8","name":"foobar","value":null,"enabled":false,"project":"test-project","metadata":{},"conditions":[{"rule":{"percentage":10},"period":null}],"created_at":"2026-04-13T14:14:39.312741+00:00","description":"foo","result_type":"boolean","script_config":null},"_type":"feature"}""",
+        """{"row":{"id":"00273cce-5b8e-447b-8a2e-0ba8d39bdea8","name":"foobar","value":null,"enabled":false,"project":"test-project","metadata":{},"conditions":[{"rule":{"percentage":10},"period":null}],"created_at":"2026-04-13T14:14:39.312741+00:00","description":"foo","result_type":"boolean","script_config":null},"_type":"feature"}"""
+      )
+
+      val res = situation.importV2(
+        "testtenant",
+        data = data,
+        conflictStrategy = "skip"
+      )
+
+      res.status mustEqual OK
+    }
+
+    "insert / update nothing in case of unplanned conflict (Fail) and return failed rows" in {
+      val situation = TestSituationBuilder()
+        .withTenants(TestTenant("testtenant").withApiKeys(TestApiKey(
+          name = "mykey",
+          enabled = true,
+          admin = true
+        )))
+        .loggedInWithAdminRights()
+        .build()
+      var data = Seq(
+        """{"row":{"id":"f049894f-fc2d-4335-b3a5-1a2a9af242b8","name":"test-project","description":""},"_type":"project"}""",
+        """{"row":{"id":"00273cce-5b8e-447b-8a2e-0ba8d39bdea8","name":"foobar","value":null,"enabled":false,"project":"test-project","metadata":{},"conditions":[{"rule":{"percentage":10},"period":null}],"created_at":"2026-04-13T14:14:39.312741+00:00","description":"foo","result_type":"boolean","script_config":null},"_type":"feature"}"""
+      )
+
+      var res = situation.importV2(
+        "testtenant",
+        data = data,
+        conflictStrategy = "skip"
+      )
+
+      res.status mustEqual OK
+
+      data = Seq(
+        """{"row":{"id":"fifou","name":"foobar","value":null,"enabled":false,"project":"test-project","metadata":{},"conditions":[{"rule":{"percentage":10},"period":null}],"created_at":"2026-04-13T14:14:39.312741+00:00","description":"foo","result_type":"boolean","script_config":null},"_type":"feature"}""",
+        """{"row":{"id":"fifou2","name":"foobar2","value":null,"enabled":false,"project":"test-project","metadata":{},"conditions":[{"rule":{"percentage":10},"period":null}],"created_at":"2026-04-13T14:14:39.312741+00:00","description":"foo","result_type":"boolean","script_config":null},"_type":"feature"}"""
+      )
+
+      res = situation.importV2(
+        "testtenant",
+        data = data,
+        conflictStrategy = "fail"
+      )
+
+      res.status mustEqual BAD_REQUEST
+
+      val failedElements = extractFailedElements(res.json.get)
+      val featureAnomalies = failedElements("Feature")
+      val extractedIds =
+        extractRowFieldAndError(rows = featureAnomalies, fieldName = "id")
+
+      extractedIds must contain theSameElementsAs (Seq((
+        "A feature with this name already exist for this project.",
+        "fifou"
+      )))
+
+      val project = situation.fetchProject(
+        tenant = "testtenant",
+        projectId = "test-project"
+      ).json.get
+
+      (project \ "features").as[JsArray].value must have size 1
+    }
+
+    "insert / update nothing in case of unplanned conflict (Overwrite mode) and return failed rows" in {
+      val situation = TestSituationBuilder()
+        .withTenants(TestTenant("testtenant").withApiKeys(TestApiKey(
+          name = "mykey",
+          enabled = true,
+          admin = true
+        )))
+        .loggedInWithAdminRights()
+        .build()
+      var data = Seq(
+        """{"row":{"id":"f049894f-fc2d-4335-b3a5-1a2a9af242b8","name":"test-project","description":""},"_type":"project"}""",
+        """{"row":{"id":"00273cce-5b8e-447b-8a2e-0ba8d39bdea8","name":"foobar","value":null,"enabled":false,"project":"test-project","metadata":{},"conditions":[{"rule":{"percentage":10},"period":null}],"created_at":"2026-04-13T14:14:39.312741+00:00","description":"foo","result_type":"boolean","script_config":null},"_type":"feature"}"""
+      )
+
+      var res = situation.importV2(
+        "testtenant",
+        data = data,
+        conflictStrategy = "skip"
+      )
+
+      res.status mustEqual OK
+
+      data = Seq(
+        """{"row":{"id":"fifou","name":"foobar","value":null,"enabled":false,"project":"test-project","metadata":{},"conditions":[{"rule":{"percentage":10},"period":null}],"created_at":"2026-04-13T14:14:39.312741+00:00","description":"foo","result_type":"boolean","script_config":null},"_type":"feature"}""",
+        """{"row":{"id":"fifou2","name":"foobar2","value":null,"enabled":false,"project":"test-project","metadata":{},"conditions":[{"rule":{"percentage":10},"period":null}],"created_at":"2026-04-13T14:14:39.312741+00:00","description":"foo","result_type":"boolean","script_config":null},"_type":"feature"}"""
+      )
+
+      res = situation.importV2(
+        "testtenant",
+        data = data,
+        conflictStrategy = "overwrite"
+      )
+
+      res.status mustEqual BAD_REQUEST
+      val failedElements = extractFailedElements(res.json.get)
+      val featureAnomalies = failedElements("Feature")
+      val extractedIds =
+        extractRowFieldAndError(rows = featureAnomalies, fieldName = "id")
+
+      extractedIds must contain theSameElementsAs (Seq((
+        "A feature with this name already exist for this project.",
+        "fifou"
+      )))
+
+      val project = situation.fetchProject(
+        tenant = "testtenant",
+        projectId = "test-project"
+      ).json.get
+
+      (project \ "features").as[JsArray].value must have size 1
+    }
+
+    "insert / update nothing in case of unplanned conflict (Skip mode) and return failed rows" in {
+      val situation = TestSituationBuilder()
+        .withTenants(TestTenant("testtenant").withApiKeys(TestApiKey(
+          name = "mykey",
+          enabled = true,
+          admin = true
+        )))
+        .loggedInWithAdminRights()
+        .build()
+      var data = Seq(
+        """{"row":{"id":"f049894f-fc2d-4335-b3a5-1a2a9af242b8","name":"test-project","description":""},"_type":"project"}""",
+        """{"row":{"id":"00273cce-5b8e-447b-8a2e-0ba8d39bdea8","name":"foobar","value":null,"enabled":false,"project":"test-project","metadata":{},"conditions":[{"rule":{"percentage":10},"period":null}],"created_at":"2026-04-13T14:14:39.312741+00:00","description":"foo","result_type":"boolean","script_config":null},"_type":"feature"}"""
+      )
+
+      var res = situation.importV2(
+        "testtenant",
+        data = data,
+        conflictStrategy = "skip"
+      )
+
+      res.status mustEqual OK
+
+      data = Seq(
+        """{"row":{"id":"fifou","name":"foobar","value":null,"enabled":false,"project":"test-project","metadata":{},"conditions":[{"rule":{"percentage":10},"period":null}],"created_at":"2026-04-13T14:14:39.312741+00:00","description":"foo","result_type":"boolean","script_config":null},"_type":"feature"}""",
+        """{"row":{"id":"fifou2","name":"foobar2","value":null,"enabled":false,"project":"test-project","metadata":{},"conditions":[{"rule":{"percentage":10},"period":null}],"created_at":"2026-04-13T14:14:39.312741+00:00","description":"foo","result_type":"boolean","script_config":null},"_type":"feature"}"""
+      )
+
+      res = situation.importV2(
+        "testtenant",
+        data = data,
+        conflictStrategy = "skip"
+      )
+
+      res.status mustEqual BAD_REQUEST
+
+      val failedElements = extractFailedElements(res.json.get)
+      val featureAnomalies = failedElements("Feature")
+      val extractedIds =
+        extractRowFieldAndError(rows = featureAnomalies, fieldName = "id")
+
+      extractedIds must contain theSameElementsAs (Seq((
+        "A feature with this name already exist for this project.",
+        "fifou"
+      )))
+
+      val project = situation.fetchProject(
+        tenant = "testtenant",
+        projectId = "test-project"
+      ).json.get
+
+      (project \ "features").as[JsArray].value must have size 1
+    }
+
+    "generate event when only feature tags are updated" in {
+      val situation = TestSituationBuilder()
+        .withTenants(TestTenant("testtenant").withApiKeys(TestApiKey(
+          name = "mykey",
+          enabled = true,
+          admin = true
+        )))
+        .loggedInWithAdminRights()
+        .build()
+      var data = Seq(
+        """{"row":{"id":"f049894f-fc2d-4335-b3a5-1a2a9af242b8","name":"test-project","description":""},"_type":"project"}""",
+        """{"row":{"id":"00273cce-5b8e-447b-8a2e-0ba8d39bdea8","name":"foobar","value":null,"enabled":false,"project":"test-project","metadata":{},"conditions":[{"rule":{"percentage":10},"period":null}],"created_at":"2026-04-13T14:14:39.312741+00:00","description":"foo","result_type":"boolean","script_config":null},"_type":"feature"}""",
+        """{"row":{"id":"57c1ff3b-59cd-48b8-8086-f3f84237dcaf","name":"foo","description":""},"_type":"tag"}""",
+        """{"row":{"id":"80100f5d-f93f-4dbf-acf0-1789e712b774","name":"bar","description":""},"_type":"tag"}""",
+        """{"row":{"id":"35fd79f5-512a-4082-a05e-9561ed3dcfd9","name":"baz","description":""},"_type":"tag"}""",
+        """{"row":{"tag":"bar","feature":"00273cce-5b8e-447b-8a2e-0ba8d39bdea8"},"_type":"feature_tag"}""",
+        """{"row":{"tag":"foo","feature":"00273cce-5b8e-447b-8a2e-0ba8d39bdea8"},"_type":"feature_tag"}"""
+      )
+
+      var res = situation.importV2(
+        "testtenant",
+        data = data,
+        conflictStrategy = "skip"
+      )
+
+      res.status mustEqual OK
+
+      val projectResponse = situation.fetchProject("testtenant", "test-project")
+      val projectId = (projectResponse.json.get \ "id").as[String]
+
+      val evts = ArrayBuffer[ServerSentEvent]()
+      situation.listenEvents(
+        key = "mykey",
+        features = Seq(),
+        projects =
+          Seq(projectId),
+        consumer = evt => {
+          evts.addOne(evt);
+        },
+        conditions = true
+      )
+
+      data = Seq(
+        """{"row":{"tag":"bar","feature":"00273cce-5b8e-447b-8a2e-0ba8d39bdea8"},"_type":"feature_tag"}""",
+        """{"row":{"tag":"baz","feature":"00273cce-5b8e-447b-8a2e-0ba8d39bdea8"},"_type":"feature_tag"}"""
+      )
+
+      res = situation.importV2(
+        "testtenant",
+        data = data,
+        conflictStrategy = "overwrite"
+      )
+      res.status mustEqual OK
+
+      await atMost (10, SECONDS) until {
+        evts.toSeq.exists(e => e.eventType.get == "FEATURE_UPDATED")
+      }
+
+      val evt = evts.findLast(e => e.eventType.get == "FEATURE_UPDATED").get
+
+      (Json.parse(evt.data) \ "payload" \ "name").as[String] mustEqual "foobar"
+    }
+
+    "generate event when only feature overload is updated" in {
+      val situation = TestSituationBuilder()
+        .withTenants(TestTenant("testtenant").withApiKeys(TestApiKey(
+          name = "mykey",
+          enabled = true,
+          admin = true
+        )))
+        .loggedInWithAdminRights()
+        .build()
+      var data = Seq(
+        """{"row":{"id":"f049894f-fc2d-4335-b3a5-1a2a9af242b8","name":"test-project","description":""},"_type":"project"}""",
+        """{"row":{"id":"00273cce-5b8e-447b-8a2e-0ba8d39bdea8","name":"foobar","value":null,"enabled":false,"project":"test-project","metadata":{},"conditions":[{"rule":{"percentage":10},"period":null}],"created_at":"2026-04-13T14:14:39.312741+00:00","description":"foo","result_type":"boolean","script_config":null},"_type":"feature"}""",
+        """{"row":{"name":"prod","global":true,"parent":null,"project":null,"protected":false},"_type":"context"}"""
+      )
+
+      var res = situation.importV2(
+        "testtenant",
+        data = data,
+        conflictStrategy = "skip"
+      )
+
+      res.status mustEqual OK
+
+      val projectResponse = situation.fetchProject("testtenant", "test-project")
+      val projectId = (projectResponse.json.get \ "id").as[String]
+
+      val evts = ArrayBuffer[ServerSentEvent]()
+      situation.listenEvents(
+        key = "mykey",
+        features = Seq(),
+        projects =
+          Seq(projectId),
+        consumer = evt => {
+          evts.addOne(evt);
+        },
+        conditions = true
+      )
+
+      data = Seq(
+        """{"row":{"value":null,"context":"prod","enabled":true,"feature":"foobar","project":"test-project","conditions":[],"result_type":"boolean","script_config":null},"_type":"overload"}"""
+      )
+
+      res = situation.importV2(
+        "testtenant",
+        data = data,
+        conflictStrategy = "overwrite"
+      )
+      res.status mustEqual OK
+
+      await atMost (10, SECONDS) until {
+        evts.toSeq.exists(e => e.eventType.get == "FEATURE_UPDATED")
+      }
+
+      val evt = evts.findLast(e => e.eventType.get == "FEATURE_UPDATED").get
+
+      (Json.parse(evt.data) \ "payload" \ "name").as[String] mustEqual "foobar"
+
+      data = Seq(
+        """{"row":{"value":null,"context":"prod","enabled":false,"feature":"foobar","project":"test-project","conditions":[],"result_type":"boolean","script_config":null},"_type":"overload"}"""
+      )
+
+      res = situation.importV2(
+        "testtenant",
+        data = data,
+        conflictStrategy = "overwrite"
+      )
+      res.status mustEqual OK
+
+      await atMost (10, SECONDS) until {
+        evts.filter(e => e.eventType.get == "FEATURE_UPDATED").size == 2
+      }
+    }
+
+    "generate a single event when overload, features and tags are updated" in {
+      val situation = TestSituationBuilder()
+        .withTenants(TestTenant("testtenant").withApiKeys(TestApiKey(
+          name = "mykey",
+          enabled = true,
+          admin = true
+        )))
+        .loggedInWithAdminRights()
+        .build()
+      var data = Seq(
+        """{"row":{"id":"f049894f-fc2d-4335-b3a5-1a2a9af242b8","name":"test-project","description":""},"_type":"project"}""",
+        """{"row":{"id":"00273cce-5b8e-447b-8a2e-0ba8d39bdea8","name":"foobar","value":null,"enabled":false,"project":"test-project","metadata":{},"conditions":[{"rule":{"percentage":10},"period":null}],"created_at":"2026-04-13T14:14:39.312741+00:00","description":"foo","result_type":"boolean","script_config":null},"_type":"feature"}""",
+        """{"row":{"id":"57c1ff3b-59cd-48b8-8086-f3f84237dcaf","name":"foo","description":""},"_type":"tag"}""",
+        """{"row":{"id":"80100f5d-f93f-4dbf-acf0-1789e712b774","name":"bar","description":""},"_type":"tag"}""",
+        """{"row":{"id":"35fd79f5-512a-4082-a05e-9561ed3dcfd9","name":"baz","description":""},"_type":"tag"}""",
+        """{"row":{"tag":"bar","feature":"00273cce-5b8e-447b-8a2e-0ba8d39bdea8"},"_type":"feature_tag"}""",
+        """{"row":{"tag":"foo","feature":"00273cce-5b8e-447b-8a2e-0ba8d39bdea8"},"_type":"feature_tag"}""",
+        """{"row":{"name":"prod","global":true,"parent":null,"project":null,"protected":false},"_type":"context"}"""
+      )
+
+      var res = situation.importV2(
+        "testtenant",
+        data = data,
+        conflictStrategy = "skip"
+      )
+
+      res.status mustEqual OK
+
+      val projectResponse = situation.fetchProject("testtenant", "test-project")
+      val projectId = (projectResponse.json.get \ "id").as[String]
+
+      val evts = ArrayBuffer[ServerSentEvent]()
+      situation.listenEvents(
+        key = "mykey",
+        features = Seq(),
+        projects =
+          Seq(projectId),
+        consumer = evt => {
+          evts.addOne(evt);
+        },
+        conditions = true
+      )
+
+      data = Seq(
+        """{"row":{"tag":"bar","feature":"00273cce-5b8e-447b-8a2e-0ba8d39bdea8"},"_type":"feature_tag"}""",
+        """{"row":{"tag":"baz","feature":"00273cce-5b8e-447b-8a2e-0ba8d39bdea8"},"_type":"feature_tag"}""",
+        """{"row":{"value":null,"context":"prod","enabled":true,"feature":"foobar","project":"test-project","conditions":[],"result_type":"boolean","script_config":null},"_type":"overload"}"""
+      )
+
+      res = situation.importV2(
+        "testtenant",
+        data = data,
+        conflictStrategy = "overwrite"
+      )
+      res.status mustEqual OK
+
+      await atMost (10, SECONDS) until {
+        evts.toSeq.exists(e => e.eventType.get == "FEATURE_UPDATED")
+      }
+      val evt = evts.findLast(e => e.eventType.get == "FEATURE_UPDATED").get
+
+      Thread.sleep(3_000)
+
+      evts.filter(e => e.eventType.get == "FEATURE_UPDATED").size mustEqual 1
+
+      (Json.parse(evt.data) \ "payload" \ "name").as[String] mustEqual "foobar"
+    }
+
+    "allow specifying custom merge rules for feature projects" in {
+      val situation = TestSituationBuilder()
+        .withTenantNames("testtenant")
+        .loggedInWithAdminRights()
+        .build()
+      var data = Seq(
+        """{"row":{"id":"f049894f-fc2d-4335-b3a5-1a2a9af242b8","name":"test-project","description":""},"_type":"project"}""",
+        """{"row":{"id":"9241408d-d04c-4f90-a45f-a3427eb1119a","name":"another-project","description":""},"_type":"project"}""",
+        """{"row":{"id":"00273cce-5b8e-447b-8a2e-0ba8d39bdea8","name":"foobar","value":null,"enabled":false,"project":"test-project","metadata":{},"conditions":[{"rule":{"percentage":10},"period":null}],"created_at":"2026-04-13T14:14:39.312741+00:00","description":"foo","result_type":"boolean","script_config":null},"_type":"feature"}"""
+      )
+
+      var res = situation.importV2(
+        "testtenant",
+        data = data,
+        conflictStrategy = "skip"
+      )
+
+      res.status mustEqual OK
+
+      data = Seq(
+        """{"row":{"id":"f049894f-fc2d-4335-b3a5-1a2a9af242b8","name":"test-project","description":""},"_type":"project"}""",
+        """{"row":{"id":"9241408d-d04c-4f90-a45f-a3427eb1119a","name":"another-project","description":""},"_type":"project"}""",
+        """{"row":{"id":"00273cce-5b8e-447b-8a2e-0ba8d39bdea8","name":"foobar","value":null,"enabled":false,"project":"another-project","metadata":{},"conditions":[{"rule":{"percentage":10},"period":null}],"created_at":"2026-04-13T14:14:39.312741+00:00","description":"foo","result_type":"boolean","script_config":null},"_type":"feature"}"""
+      )
+
+      res = situation.importV2(
+        "testtenant",
+        data = data,
+        conflictStrategy = "skip",
+        featureProject = Some("overwrite")
+      )
+
+      res.status mustEqual OK
+
+      var proj = situation.fetchProject(
+        tenant = "testtenant",
+        projectId = "another-project"
+      )
+
+      (proj.json.get \ "features" \ 0 \ "name").as[String] mustEqual "foobar"
+
+      proj = situation.fetchProject(
+        tenant = "testtenant",
+        projectId = "test-project"
+      )
+
+      (proj.json.get \ "features").as[JsArray].value mustBe empty
+
+      data = Seq(
+        """{"row":{"id":"f049894f-fc2d-4335-b3a5-1a2a9af242b8","name":"test-project","description":""},"_type":"project"}""",
+        """{"row":{"id":"9241408d-d04c-4f90-a45f-a3427eb1119a","name":"another-project","description":""},"_type":"project"}""",
+        """{"row":{"id":"00273cce-5b8e-447b-8a2e-0ba8d39bdea8","name":"foobar","value":null,"enabled":false,"project":"test-project","metadata":{},"conditions":[{"rule":{"percentage":10},"period":null}],"created_at":"2026-04-13T14:14:39.312741+00:00","description":"foo","result_type":"boolean","script_config":null},"_type":"feature"}"""
+      )
+
+      res = situation.importV2(
+        "testtenant",
+        data = data,
+        conflictStrategy = "skip",
+        featureProject = Some("skip")
+      )
+
+      res.status mustEqual OK
+
+      proj = situation.fetchProject(
+        tenant = "testtenant",
+        projectId = "test-project"
+      )
+
+      (proj.json.get \ "features").as[JsArray].value mustBe empty
+
+      proj = situation.fetchProject(
+        tenant = "testtenant",
+        projectId = "another-project"
+      )
+
+      (proj.json.get \ "features" \ 0 \ "name").as[String] mustEqual "foobar"
+    }
+
+    "allow specifying custom merge rules for feature tags" in {
+      val situation = TestSituationBuilder()
+        .withTenantNames("testtenant")
+        .loggedInWithAdminRights()
+        .build()
+      var data = Seq(
+        """{"row":{"id":"f049894f-fc2d-4335-b3a5-1a2a9af242b8","name":"test-project","description":""},"_type":"project"}""",
+        """{"row":{"id":"00273cce-5b8e-447b-8a2e-0ba8d39bdea8","name":"foobar","value":null,"enabled":false,"project":"test-project","metadata":{},"conditions":[{"rule":{"percentage":10},"period":null}],"created_at":"2026-04-13T14:14:39.312741+00:00","description":"foo","result_type":"boolean","script_config":null},"_type":"feature"}""",
+        """{"row":{"id":"57c1ff3b-59cd-48b8-8086-f3f84237dcaf","name":"foo","description":""},"_type":"tag"}""",
+        """{"row":{"id":"80100f5d-f93f-4dbf-acf0-1789e712b774","name":"bar","description":""},"_type":"tag"}""",
+        """{"row":{"id":"35fd79f5-512a-4082-a05e-9561ed3dcfd9","name":"baz","description":""},"_type":"tag"}""",
+        """{"row":{"tag":"bar","feature":"00273cce-5b8e-447b-8a2e-0ba8d39bdea8"},"_type":"feature_tag"}""",
+        """{"row":{"tag":"foo","feature":"00273cce-5b8e-447b-8a2e-0ba8d39bdea8"},"_type":"feature_tag"}"""
+      )
+
+      var res = situation.importV2(
+        "testtenant",
+        data = data,
+        conflictStrategy = "skip"
+      )
+
+      res.status mustEqual OK
+
+      data = Seq(
+        """{"row":{"id":"f049894f-fc2d-4335-b3a5-1a2a9af242b8","name":"test-project","description":""},"_type":"project"}""",
+        """{"row":{"id":"00273cce-5b8e-447b-8a2e-0ba8d39bdea8","name":"foobar","value":null,"enabled":false,"project":"test-project","metadata":{},"conditions":[{"rule":{"percentage":10},"period":null}],"created_at":"2026-04-13T14:14:39.312741+00:00","description":"foo","result_type":"boolean","script_config":null},"_type":"feature"}""",
+        """{"row":{"id":"57c1ff3b-59cd-48b8-8086-f3f84237dcaf","name":"foo","description":""},"_type":"tag"}""",
+        """{"row":{"id":"80100f5d-f93f-4dbf-acf0-1789e712b774","name":"bar","description":""},"_type":"tag"}""",
+        """{"row":{"id":"35fd79f5-512a-4082-a05e-9561ed3dcfd9","name":"baz","description":""},"_type":"tag"}""",
+        """{"row":{"tag":"baz","feature":"00273cce-5b8e-447b-8a2e-0ba8d39bdea8"},"_type":"feature_tag"}""",
+        """{"row":{"tag":"foo","feature":"00273cce-5b8e-447b-8a2e-0ba8d39bdea8"},"_type":"feature_tag"}"""
+      )
+
+      res = situation.importV2(
+        "testtenant",
+        data = data,
+        conflictStrategy = "skip",
+        featureTags = Some("overwrite")
+      )
+
+      res.status mustEqual OK
+
+      var proj = situation.fetchProject(
+        tenant = "testtenant",
+        projectId = "test-project"
+      )
+
+      (proj.json.get \ "features" \ 0 \ "tags").as[Seq[
+        String
+      ]] must contain theSameElementsAs Seq("baz", "foo")
+
+      data = Seq(
+        """{"row":{"id":"f049894f-fc2d-4335-b3a5-1a2a9af242b8","name":"test-project","description":""},"_type":"project"}""",
+        """{"row":{"id":"00273cce-5b8e-447b-8a2e-0ba8d39bdea8","name":"foobar","value":null,"enabled":false,"project":"test-project","metadata":{},"conditions":[{"rule":{"percentage":10},"period":null}],"created_at":"2026-04-13T14:14:39.312741+00:00","description":"foo","result_type":"boolean","script_config":null},"_type":"feature"}""",
+        """{"row":{"id":"57c1ff3b-59cd-48b8-8086-f3f84237dcaf","name":"foo","description":""},"_type":"tag"}""",
+        """{"row":{"id":"80100f5d-f93f-4dbf-acf0-1789e712b774","name":"bar","description":""},"_type":"tag"}""",
+        """{"row":{"id":"35fd79f5-512a-4082-a05e-9561ed3dcfd9","name":"baz","description":""},"_type":"tag"}""",
+        """{"row":{"tag":"bar","feature":"00273cce-5b8e-447b-8a2e-0ba8d39bdea8"},"_type":"feature_tag"}"""
+      )
+
+      res = situation.importV2(
+        "testtenant",
+        data = data,
+        conflictStrategy = "overwrite",
+        featureTags = Some("skip")
+      )
+
+      res.status mustEqual OK
+
+      proj = situation.fetchProject(
+        tenant = "testtenant",
+        projectId = "test-project"
+      )
+
+      (proj.json.get \ "features" \ 0 \ "tags").as[Seq[
+        String
+      ]] must contain theSameElementsAs Seq("baz", "foo")
+    }
+
+    "allow specifying custom merge rules for feature properties" in {
+      val situation = TestSituationBuilder()
+        .withTenantNames("testtenant")
+        .loggedInWithAdminRights()
+        .build()
+      var data = Seq(
+        """{"row":{"id":"f049894f-fc2d-4335-b3a5-1a2a9af242b8","name":"test-project","description":""},"_type":"project"}""",
+        """{"row":{"id":"00273cce-5b8e-447b-8a2e-0ba8d39bdea8","name":"simple feature","enabled":true,"project":"test-project","metadata":{},"conditions":[],"description":"bar","script_config":null},"_type":"feature"}"""
+      )
+
+      var res = situation.importV2(
+        "testtenant",
+        data = data,
+        conflictStrategy = "skip",
+        featureName = Some("overwrite")
+      )
+
+      res.status mustEqual OK
+
+      data = Seq(
+        """{"row":{"id":"f049894f-fc2d-4335-b3a5-1a2a9af242b8","name":"test-project","description":""},"_type":"project"}""",
+        """{"row":{"id":"00273cce-5b8e-447b-8a2e-0ba8d39bdea8","name":"foobar","enabled":false,"project":"test-project","metadata":{},"conditions":[{"rule": {"percentage": 10},"period": null}],"description":"foo","script_config":null},"_type":"feature"}"""
+      )
+
+      res = situation.importV2(
+        "testtenant",
+        data = data,
+        conflictStrategy = "skip",
+        featureName = Some("overwrite")
+      )
+
+      res.status mustEqual OK
+
+      var proj = situation.fetchProject(
+        tenant = "testtenant",
+        projectId = "test-project"
+      )
+
+      (proj.json.get \ "features" \ 0 \ "name").as[String] mustEqual "foobar"
+      (proj.json.get \ "features" \ 0 \ "description").as[String] mustEqual "bar"
+      (proj.json.get \ "features" \ 0 \ "enabled").as[Boolean] mustEqual true
+      (proj.json.get \ "features" \ 0 \ "conditions").as[JsArray].value mustBe empty
+
+      data = Seq(
+        """{"row":{"id":"f049894f-fc2d-4335-b3a5-1a2a9af242b8","name":"test-project","description":""},"_type":"project"}""",
+        """{"row":{"id":"00273cce-5b8e-447b-8a2e-0ba8d39bdea8","name":"foobarbaz","enabled":false,"project":"test-project","metadata":{},"conditions":[{"rule": {"percentage": 10},"period": null}],"description":"foo","script_config":null},"_type":"feature"}"""
+      )
+
+      res = situation.importV2(
+        "testtenant",
+        data = data,
+        conflictStrategy = "skip",
+        featureName = Some("skip"),
+        featureDescription = Some("overwrite"),
+        featureEnabling = Some("overwrite"),
+        featureConditions = Some("overwrite")
+      )
+
+      res.status mustEqual OK
+
+      proj = situation.fetchProject(
+        tenant = "testtenant",
+        projectId = "test-project"
+      )
+
+      (proj.json.get \ "features" \ 0 \ "name").as[String] mustEqual "foobar"
+      (proj.json.get \ "features" \ 0 \ "description").as[String] mustEqual "foo"
+      (proj.json.get \ "features" \ 0 \ "enabled").as[Boolean] mustEqual false
+      (proj.json.get \ "features" \ 0 \ "conditions" \ 0 \ "rule" \ "percentage").as[
+        Int
+      ] mustEqual 10
+
+    }
+
     "return warning when importing wasm based features in an instance that doesn't allow wasm" in {
       var situation = TestSituationBuilder()
         .loggedInWithAdminRights()
@@ -54,8 +953,7 @@ class ImportApiSpec extends BaseAPISpec {
                     name = "bar",
                     enabled = true
                   )
-                ),
-
+                )
             )
         )
         .withPersonnalAccessToken(
@@ -80,7 +978,7 @@ class ImportApiSpec extends BaseAPISpec {
       val res =
         situation.importV2(
           "tenant",
-          data = payload.split("\n"),
+          data = payload.split("\n").toIndexedSeq,
           conflictStrategy = "SKIP"
         )
 
@@ -135,7 +1033,7 @@ class ImportApiSpec extends BaseAPISpec {
         )
         .build()
 
-      val id = situation
+      situation
         .findFeatureId(tenant = "tenant", project = "project", feature = "F1")
         .get
 
@@ -152,7 +1050,7 @@ class ImportApiSpec extends BaseAPISpec {
       val res =
         situation.importV2(
           "tenant",
-          data = payload.split("\n"),
+          data = payload.split("\n").toIndexedSeq,
           conflictStrategy = "SKIP"
         )
 
@@ -423,7 +1321,7 @@ class ImportApiSpec extends BaseAPISpec {
         .loggedInWithAdminRights()
         .build()
 
-      val response = situation.importAndWaitTermination(
+      situation.importAndWaitTermination(
         tenant = "testtenant",
         features = Seq(
           """{"id":"project:foo:default-feature","enabled":false,"description":"An old default feature","parameters":{},"activationStrategy":"NO_STRATEGY"}""".stripMargin
@@ -468,7 +1366,7 @@ class ImportApiSpec extends BaseAPISpec {
         .loggedInWithAdminRights()
         .build()
 
-      val response = situation.importAndWaitTermination(
+      situation.importAndWaitTermination(
         tenant = "testtenant",
         features = Seq(
           """{"id":"project:test:percentage-feature","enabled":true,"description":"An old style percentage feature","parameters":{"percentage":75},"activationStrategy":"PERCENTAGE"}""",
@@ -528,7 +1426,7 @@ class ImportApiSpec extends BaseAPISpec {
         .loggedInWithAdminRights()
         .build()
 
-      val response = situation.importAndWaitTermination(
+      situation.importAndWaitTermination(
         tenant = "testtenant",
         deduceProject = false,
         project = "fifou",
@@ -566,7 +1464,7 @@ class ImportApiSpec extends BaseAPISpec {
         .loggedInWithAdminRights()
         .build()
 
-      val response = situation.importAndWaitTermination(
+      situation.importAndWaitTermination(
         tenant = "testtenant",
         deduceProject = true,
         projectPartSize = Some(2),
@@ -641,7 +1539,7 @@ class ImportApiSpec extends BaseAPISpec {
 
       val uuid = UUID.randomUUID().toString.replace("-", "")
 
-      val response = situation.importAndWaitTermination(
+      situation.importAndWaitTermination(
         tenant = "testtenant",
         features = Seq(
           s"""{"id":"project:foo:script-feature$uuid","enabled":true,"description":"An old style inline script feature","parameters":{"type":"javascript","script":"function enabled(context, enabled, disabled, http) {  if (context.id === 'benjamin') {    return enabled();  }  return disabled();}"},"activationStrategy":"SCRIPT"}""".stripMargin
@@ -705,7 +1603,7 @@ class ImportApiSpec extends BaseAPISpec {
         .loggedInWithAdminRights()
         .build()
 
-      val response = situation.importAndWaitTermination(
+      situation.importAndWaitTermination(
         tenant = "testtenant",
         deduceProject = false,
         project = "fifou",
@@ -818,7 +1716,7 @@ class ImportApiSpec extends BaseAPISpec {
         .loggedAs("testu")
         .build()
 
-      var response = situation.importV1Data(
+      val response = situation.importV1Data(
         tenant = "testtenant",
         deduceProject = false,
         project = "fifou",
@@ -837,7 +1735,7 @@ class ImportApiSpec extends BaseAPISpec {
         .loggedAs("testu")
         .build()
 
-      var response = situation.importV1Data(
+      val response = situation.importV1Data(
         tenant = "testtenant",
         deduceProject = false,
         project = "fifou",
@@ -857,7 +1755,7 @@ class ImportApiSpec extends BaseAPISpec {
         .loggedInWithAdminRights()
         .build()
 
-      val response = situation.importAndWaitTermination(
+      situation.importAndWaitTermination(
         tenant = "testtenant",
         users = Seq(
           """{"id":"project-create-accredited-user","name":"pcau","email":"pcau@maif.fr","password":"199e0ada63510b01d4b752b872a56a7a57f70cd6ace36fb38683207308c88a3f0a417bffbb39c59098b56d541e84053e072174389ce27438f6902c6217384ba3","admin":false,"temporary":false,"authorizedPatterns":[{"pattern":"project:*","rights":["C","R"]}],"type":"Izanami"}""".stripMargin
@@ -884,7 +1782,7 @@ class ImportApiSpec extends BaseAPISpec {
         .loggedInWithAdminRights()
         .build()
 
-      val response = situation.importAndWaitTermination(
+      situation.importAndWaitTermination(
         tenant = "testtenant",
         deduceProject = false,
         project = "project",
@@ -911,7 +1809,7 @@ class ImportApiSpec extends BaseAPISpec {
         .loggedInWithAdminRights()
         .build()
 
-      val response = situation.importAndWaitTermination(
+      situation.importAndWaitTermination(
         tenant = "testtenant",
         deduceProject = false,
         project = "project",
@@ -938,7 +1836,7 @@ class ImportApiSpec extends BaseAPISpec {
         .loggedInWithAdminRights()
         .build()
 
-      val response = situation.importAndWaitTermination(
+      situation.importAndWaitTermination(
         tenant = "testtenant",
         deduceProject = false,
         project = "project",
@@ -965,7 +1863,7 @@ class ImportApiSpec extends BaseAPISpec {
         .loggedInWithAdminRights()
         .build()
 
-      val response = situation.importAndWaitTermination(
+      situation.importAndWaitTermination(
         tenant = "testtenant",
         deduceProject = false,
         project = "project",
@@ -1006,12 +1904,12 @@ class ImportApiSpec extends BaseAPISpec {
     }
 
     "Allow to import admin user as admin user" in {
-      var situation = TestSituationBuilder()
+      val situation = TestSituationBuilder()
         .withTenants(TestTenant("testtenant"))
         .loggedInWithAdminRights()
         .build()
 
-      val response = situation.importAndWaitTermination(
+      situation.importAndWaitTermination(
         tenant = "testtenant",
         users = Seq(
           """{"id":"pcau","name":"pcau","email":"pcau@maif.fr","password":"81da262dd4b4d531576925ab45dcdaad7f8d46c668b2bbbde414939402f01fe16223fc872a179a21bcfbc526ca43a7a972cb89befec69287bd5323a88c650957","admin":true,"temporary":false,"authorizedPatterns":[{"pattern":"project:*","rights":["R"]}],"type":"Izanami"}""".stripMargin
@@ -1034,7 +1932,7 @@ class ImportApiSpec extends BaseAPISpec {
         .loggedInWithAdminRights()
         .build()
 
-      val response = situation.importAndWaitTermination(
+      situation.importAndWaitTermination(
         tenant = "testtenant",
         keys = Seq(
           """{"clientId":"yfsc5ooy3v3hu5z2","name":"local create read key","clientSecret":"sygl4ls9sjr93v1p9ufc7y8p83117w1f3t2p6nh8w15b7njfoz9er4sgjgabkxmw","authorizedPatterns":[{"pattern":"project:*","rights":["C","R"]}],"admin":false}""".stripMargin
@@ -1079,7 +1977,7 @@ class ImportApiSpec extends BaseAPISpec {
         .loggedInWithAdminRights()
         .build()
 
-      val response = situation.importAndWaitTermination(
+      situation.importAndWaitTermination(
         tenant = "testtenant",
         features = Seq(
           """{"id":"project:foo","enabled":true,"description":"An old default feature","parameters":{},"activationStrategy":"NO_STRATEGY"}""".stripMargin
@@ -1117,7 +2015,7 @@ class ImportApiSpec extends BaseAPISpec {
 
       val uuid = UUID.randomUUID().toString.replace("-", "")
 
-      val response = situation.importAndWaitTermination(
+      situation.importAndWaitTermination(
         tenant = "testtenant",
         features = Seq(
           s"""{"id":"project:another:global-script-feature$uuid","enabled":true,"description":"A test global script feature","parameters":{"ref":"project:global-script$uuid"},"activationStrategy":"GLOBAL_SCRIPT"}""".stripMargin
@@ -1159,7 +2057,7 @@ class ImportApiSpec extends BaseAPISpec {
         .build()
       val uuid = UUID.randomUUID()
 
-      val response = situation.importAndWaitTermination(
+      situation.importAndWaitTermination(
         tenant = "testtenant",
         features = Seq(
           s"""{"id":"project:foo:script-feature$uuid","enabled":true,"description":"An old style inline script feature","parameters":{"type":"javascript","script":"function enabled(context, enabled, disabled, http) {  if (context.id === 'benjamin') {    return enabled();  }  return disabled();}"},"activationStrategy":"SCRIPT"}""".stripMargin
@@ -1201,7 +2099,7 @@ class ImportApiSpec extends BaseAPISpec {
 
       val uuid = UUID.randomUUID()
 
-      val response = situation.importAndWaitTermination(
+      situation.importAndWaitTermination(
         tenant = "testtenant",
         features = Seq(
           s"""{"id":"project:foo:script-feature$uuid","enabled":true,"description":"An old style inline script feature","parameters":{"type":"javascript","script":"function enabled(context, enabled, disabled, http) {  if (context.id === 'benjamin') {    return enabled();  }  return disabled();}"},"activationStrategy":"SCRIPT"}""".stripMargin
@@ -1262,7 +2160,7 @@ class ImportApiSpec extends BaseAPISpec {
         .loggedInWithAdminRights()
         .build()
 
-      val response = situation.importAndWaitTermination(
+      situation.importAndWaitTermination(
         tenant = "testtenant",
         features = Seq(
           """{"id":"project:simple:feature","enabled":true,"parameters":{},"activationStrategy":"NO_STRATEGY"}""".stripMargin,

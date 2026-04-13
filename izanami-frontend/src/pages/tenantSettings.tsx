@@ -6,7 +6,6 @@ import { useNavigate, useParams } from "react-router-dom";
 import { GenericTable } from "../components/GenericTable";
 import queryClient from "../queryClient";
 import { IzanamiContext, useTenantRight } from "../securityContext";
-import CodeMirror from "@uiw/react-codemirror";
 import Select from "react-select";
 import {
   deleteTenant,
@@ -29,6 +28,7 @@ import {
   webhookQueryKey,
 } from "../utils/queries";
 import {
+  ImportErrorDetails,
   ImportRequest,
   IzanamiTenantExportRequest,
   IzanamiV1ImportRequest,
@@ -40,7 +40,12 @@ import {
 import { UserEdition } from "./users";
 import { InvitationForm } from "../components/InvitationForm";
 import { TENANT_NAME_REGEXP } from "../utils/patterns";
-import { Controller, FormProvider, useForm } from "react-hook-form";
+import {
+  Controller,
+  FormProvider,
+  useForm,
+  useFormContext,
+} from "react-hook-form";
 import { Tooltip } from "../components/Tooltip";
 import { customStyles } from "../styles/reactSelect";
 import { TimeZoneSelect } from "../components/TimeZoneSelect";
@@ -255,18 +260,14 @@ export function TenantSettings(props: { tenant: string }) {
                 return importData(tenant, request)
                   .then((importRes) => {
                     if (
-                      importRes.conflicts ||
-                      importRes?.messages?.length > 0
+                      importRes.details ||
+                      importRes?.message
                     ) {
                       askConfirmation(
                         <>
-                          <ImportMessages messages={importRes.messages} />
-                          {importRes.conflicts && (
+                          {importRes.details && (
                             <ImportError
-                              conflictStrategy={
-                                request.conflictStrategy as ConflictStrategy
-                              }
-                              failedElements={importRes.conflicts}
+                              details={importRes.details}
                             />
                           )}
                         </>,
@@ -342,67 +343,29 @@ export function TenantSettings(props: { tenant: string }) {
   }
 }
 
-function ImportMessages(props: { messages: string[] }) {
-  return (
-    <div>
-      <h3>Import messages</h3>
-      {props.messages
-        .flatMap((msg) => {
-          return msg.split("\n");
-        })
-        .map((m, index) => {
-          return (
-            <div key={index}>
-              {m}
-              <br />
-            </div>
-          );
-        })}
-    </div>
-  );
-}
-
 function ImportError(props: {
-  conflictStrategy: ConflictStrategy;
-  failedElements: object[];
+  details: ImportErrorDetails;
 }) {
-  const { conflictStrategy, failedElements } = props;
-  let explanation;
-  if (conflictStrategy === "fail") {
-    explanation = (
-      <p>
-        Some element couldn't be imported.
-        <br />
-        Since you chose "Fail on conflict" import strategy, nothing has been
-        imported.
-        <br /> First problematic row is displayed below, see Izanami's log for
-        details.
-      </p>
-    );
-  } else {
-    explanation = (
-      <p>
-        Some element couldn't be imported.
-        <br />
-        Problematic rows are listed below, failure may be caused by either a non
-        solvable conflict or a technical error.
-        <br />
-        See application logs for details.
-        <br />
-        Non listed rows were imported correctly.
-      </p>
-    );
-  }
+  const { details } = props;
+  const rows = Object.entries(details).sort(([key1, {order: order1}], [key2, {order: order2}]) => order1 - order2)
+  .map(([name, {failures}], index) => {
+    return <>
+      <div className="fw-bold mb-1" style={{fontSize: "1.2rem", marginTop: "0.5rem"}} key={index}>{name} failures</div>
+      {failures.map(({row, error}, index) => {
+        return <div key={index} className="mb-1">
+          <div className="d-block"><code ><pre className="mb-0">{row}</pre></code></div>
+          <span className="fw-bold">Cause: </span>{error}
+        </div>
+      })}
+    </>
+  })
   return (
     <div>
       <h3>Import errors !</h3>
-      {explanation}
-      <CodeMirror
-        value={failedElements.map((obj) => JSON.stringify(obj)).join("\n")}
-        height="300px"
-        readOnly={true}
-        theme="dark"
-      />
+      Import failed due to some errors. Since there was errors, nothing was inserted / updated.<br/>
+      Fix error listed belows and try to reimport. Note that some errors may be "sequential" (for instance failing to import a project will trigger feature insertion).<br/>
+      Errors are sorted by insertion order, therefore fixing top rows may fix below ones.
+      {rows}
     </div>
   );
 }
@@ -420,8 +383,12 @@ function ImportForm(props: {
     handleSubmit,
     register,
     control,
+    getValues,
+    watch,
     formState: { isSubmitting },
   } = methods;
+
+  watch(["fineTuneFeatureConflict"]);
 
   return (
     <FormProvider {...methods}>
@@ -460,6 +427,19 @@ function ImportForm(props: {
             )}
           />
         </label>
+        <label className="mt-3 mb-3">
+          Fine tune feature conflict strategy
+          <input
+            type="checkbox"
+            className="izanami-checkbox"
+            {...register("fineTuneFeatureConflict")}
+          />
+        </label>
+        {getValues("fineTuneFeatureConflict") && (
+          <div style={{ marginLeft: "2rem", marginRight: "2rem" }}>
+            <FeatureConflictFormPart />
+          </div>
+        )}
         <label className="mt-3">
           Exported file (ndjson)
           <Tooltip id="exported-file">
@@ -677,9 +657,8 @@ const CONFLICT_STRATEGIES_OPTIONS = [
     value: "overwrite",
   },
   { label: "fail", value: "fail" },
-];
+] as const;
 
-type ConflictStrategy = "skip" | "overwrite" | "fail";
 
 function ExportForm(props: {
   cancel: () => void;
@@ -1248,4 +1227,71 @@ function IzanamiV1ImportForm(props: {
   } else {
     return <Loader message="Loading..." />;
   }
+}
+
+export function FeatureConflictFormPart() {
+  return (
+    <>
+      <h4>Feature conflict strategy</h4>
+      <div className="d-flex flex-row flex-wrap flex-grow-1">
+        {(
+          [
+            { name: "name" },
+            { name: "description" },
+            { name: "enabling" },
+            { name: "conditions" },
+            { name: "project" },
+            { name: "tags" },
+          ] as const
+        ).map(({ name }) => (
+          <div
+            style={{
+              width: "30%",
+              minWidth: "300px",
+              margin: "0.5rem 1rem",
+            }}
+            key={name}
+          >
+            <ConflictStrategySelect name={name} />
+          </div>
+        ))}
+      </div>
+    </>
+  );
+}
+
+export function ConflictStrategySelect({
+  name,
+  tooltip,
+}: {
+  name: keyof NonNullable<ImportRequest["featureConflict"]>;
+  tooltip?: React.JSX.Element;
+}) {
+  const { control } = useFormContext();
+  return (
+    <label style={{ width: "100%" }}>
+      {String(name).charAt(0).toUpperCase() + String(name).slice(1)}
+      {tooltip && (
+        <Tooltip id={`${name}-conflict-selection`}>{tooltip}</Tooltip>
+      )}
+      <Controller
+        name={`featureConflict.${name}`}
+        control={control}
+        render={({ field: { onChange, value } }) => (
+          <Select
+            value={CONFLICT_STRATEGIES_OPTIONS.find(
+              ({ value: aValue }) => value === aValue,
+            )}
+            onChange={(value) => {
+              onChange(value?.value);
+            }}
+            styles={customStyles}
+            options={CONFLICT_STRATEGIES_OPTIONS.filter(
+              ({ value }) => value !== "fail",
+            )}
+          />
+        )}
+      />
+    </label>
+  );
 }

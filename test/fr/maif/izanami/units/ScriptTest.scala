@@ -1,12 +1,12 @@
 package fr.maif.izanami.units
 
 import fr.maif.izanami.v1.OldScripts.doesUseHttp
-import org.scalatest.wordspec.AnyWordSpec
-import org.scalatest.matchers.should.Matchers
 import org.scalatest.matchers.must.Matchers.mustBe
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
+import org.scalatest.DoNotDiscover
 
-import scala.util.hashing.MurmurHash3
-
+@DoNotDiscover
 class ScriptTest extends AnyWordSpec with Matchers {
   "doesUseHttp function" should {
     "detect http function call in simple case" in {

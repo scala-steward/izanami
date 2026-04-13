@@ -1,15 +1,17 @@
 package fr.maif.izanami.errors
 
 import fr.maif.izanami.models.ExportedType
-import play.api.http.Status.{
-  BAD_REQUEST,
-  FORBIDDEN,
-  INTERNAL_SERVER_ERROR,
-  NOT_FOUND,
-  UNAUTHORIZED
-}
-import play.api.libs.json.{JsObject, JsValue, Json, Writes}
-import play.api.mvc.{Result, Results}
+import play.api.http.Status.BAD_REQUEST
+import play.api.http.Status.FORBIDDEN
+import play.api.http.Status.INTERNAL_SERVER_ERROR
+import play.api.http.Status.NOT_FOUND
+import play.api.http.Status.UNAUTHORIZED
+import play.api.libs.json.JsObject
+import play.api.libs.json.JsValue
+import play.api.libs.json.Json
+import play.api.libs.json.Writes
+import play.api.mvc.Result
+import play.api.mvc.Results
 
 import java.util.Objects
 import scala.collection.immutable.Iterable
@@ -291,10 +293,10 @@ case class InvalidCredentials()
       status = FORBIDDEN
     )
 case object InvalidApiKey
-  extends IzanamiError(
-    message = "Provided API key is invalid",
-    status = FORBIDDEN
-  )
+    extends IzanamiError(
+      message = "Provided API key is invalid",
+      status = FORBIDDEN
+    )
 case class FeatureOverloadDoesNotExist(
     project: String,
     path: String,
@@ -411,10 +413,29 @@ case class PartialImportFailure(
       message = s"Some element couldn't be imported",
       status = 400
     )
+case class ImportFailureError(
+    failedElements: Map[ExportedType, Set[JsObject]]
+) extends IzanamiError(
+      message = s"Import failed due to error on some element insertion",
+      status = 400
+    ) {
+  override def toHttpResponse: Result = {
+    val details = failedElements.toSeq.foldLeft(Json.obj())((json, next) => {
+      json + (next._1.displayName -> Json.toJson(next._2))
+    })
+
+    Results.Status(BAD_REQUEST)(Json.obj(
+      "message" -> message,
+      "details" -> details
+    ))
+  }
+}
 case class DbConnectionFailure(query: String = "")
     extends IzanamiError(
       message =
-        s"Database result is null, this usually means that Izanami failed to connect to its database${if(!query.isBlank) s". Query was $query" else ""}",
+        s"Database result is null, this usually means that Izanami failed to connect to its database${
+            if (!query.isBlank) s". Query was $query" else ""
+          }",
       status = 500
     )
 case class ImportError(table: String, json: String, errorMessage: String)
@@ -435,8 +456,10 @@ case class CantUpdateOIDCUser()
         "OIDC users can't be updated since role right mode is set to 'supervised'.",
       status = BAD_REQUEST
     )
-case class UserDoesNotExist(user: String) extends IzanamiError(message = s"User $user does not exist", status = 404)
-case class RightComplianceError(override val message: String) extends IzanamiError(message = message, status = 400)
+case class UserDoesNotExist(user: String)
+    extends IzanamiError(message = s"User $user does not exist", status = 404)
+case class RightComplianceError(override val message: String)
+    extends IzanamiError(message = message, status = 400)
 
 case object ModernFeaturesForbiddenByConfig
     extends IzanamiError(
@@ -449,16 +472,32 @@ case object CantUpdateOIDCCOnfiguration
         "OIDC configuration can't be updated while it is set in env variables.",
       status = BAD_REQUEST
     )
-case object FailedToReadTokenClaims extends IzanamiError(message = "Failed to read token claims", status = INTERNAL_SERVER_ERROR)
-case object ModernFeatureNotAllowed extends IzanamiError(message = "Modern feature creation is disabled on this instance, only legacy features are permitted", status = BAD_REQUEST)
-case object BadOPAReturnType extends IzanamiError(message = "OPA feature must have boolean result type", status = BAD_REQUEST)
-case object WasmFeatureNotAllowed extends IzanamiError(message = "This Izanami instances doesn't allow use of wasm scripts", status = BAD_REQUEST)
+case object FailedToReadTokenClaims extends IzanamiError(
+      message = "Failed to read token claims",
+      status = INTERNAL_SERVER_ERROR
+    )
+case object ModernFeatureNotAllowed extends IzanamiError(
+      message =
+        "Modern feature creation is disabled on this instance, only legacy features are permitted",
+      status = BAD_REQUEST
+    )
+case object BadOPAReturnType extends IzanamiError(
+      message = "OPA feature must have boolean result type",
+      status = BAD_REQUEST
+    )
+case object WasmFeatureNotAllowed extends IzanamiError(
+      message = "This Izanami instances doesn't allow use of wasm scripts",
+      status = BAD_REQUEST
+    )
 case object OPAResultMustBeBoolean
     extends IzanamiError(
       message = "OPA feature must have boolean result type",
       status = BAD_REQUEST
     )
-case object MissingPersonalAccessToken extends IzanamiError(message = "Access token is missing in query", status = BAD_REQUEST)
+case object MissingPersonalAccessToken extends IzanamiError(
+      message = "Access token is missing in query",
+      status = BAD_REQUEST
+    )
 case class ErrorAggregator(errors: Seq[IzanamiError])
     extends IzanamiError(
       message = errors.map(err => err.message).mkString("\n"),

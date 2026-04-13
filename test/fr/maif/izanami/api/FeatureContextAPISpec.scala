@@ -3,10 +3,15 @@ package fr.maif.izanami.api
 import fr.maif.izanami.api.BaseAPISpec.*
 import play.api.http.Status.*
 import play.api.libs.json
-import play.api.libs.json.{JsArray, JsObject, JsUndefined, JsValue, Json}
+import play.api.libs.json.JsArray
+import play.api.libs.json.JsObject
+import play.api.libs.json.JsValue
+import play.api.libs.json.Json
 
 import java.time.LocalDateTime
+import org.scalatest.DoNotDiscover
 
+@DoNotDiscover
 class FeatureContextAPISpec extends BaseAPISpec {
   "Local context PUT endpoint" should {
     "Allow to protect/unprotect local context if user is project admin" in {
@@ -343,7 +348,7 @@ class FeatureContextAPISpec extends BaseAPISpec {
         .loggedInWithAdminRights()
         .build()
 
-      var response = situation.createGlobalContext("tenant", "abcdefghij" * 21)
+      val response = situation.createGlobalContext("tenant", "abcdefghij" * 21)
       response.status mustEqual BAD_REQUEST
     }
 
@@ -1230,8 +1235,8 @@ class FeatureContextAPISpec extends BaseAPISpec {
 
       response.status mustBe NO_CONTENT
 
-
-      val contexts = situation.fetchContexts("tenant", project = "project").json.get
+      val contexts =
+        situation.fetchContexts("tenant", project = "project").json.get
 
       val ctx = (contexts \ 0).as[JsObject]
       val prodCtx = (ctx \ "children" \ 0).as[JsObject]
@@ -1394,7 +1399,7 @@ class FeatureContextAPISpec extends BaseAPISpec {
           )
         )
       )
-      
+
       overloadCreationResponse.status mustBe BAD_REQUEST
     }
 
@@ -1616,7 +1621,7 @@ class FeatureContextAPISpec extends BaseAPISpec {
     }
 
     "prevent overload update in context with protected subcontext without overload if user is not project admin and old strategy preservation is not set" in {
-      var situation = TestSituationBuilder()
+      val situation = TestSituationBuilder()
         .withUsers(
           TestUser("testu")
             .withTenantReadRight("tenant")
@@ -1644,7 +1649,7 @@ class FeatureContextAPISpec extends BaseAPISpec {
         .loggedAs("testu")
         .build()
 
-      var res = situation.changeFeatureStrategyForContext(
+      val res = situation.changeFeatureStrategyForContext(
         "tenant",
         "proj",
         "ctx",
@@ -1657,7 +1662,7 @@ class FeatureContextAPISpec extends BaseAPISpec {
     }
 
     "preserve old parent context strategy when its updated with context preservation requested" in {
-      var situation = TestSituationBuilder()
+      val situation = TestSituationBuilder()
         .withUsers(
           TestUser("testu")
             .withTenantReadRight("tenant")
@@ -1685,7 +1690,7 @@ class FeatureContextAPISpec extends BaseAPISpec {
         .loggedAs("testu")
         .build()
 
-      var res = situation.changeFeatureStrategyForContext(
+      val res = situation.changeFeatureStrategyForContext(
         "tenant",
         "proj",
         "ctx",

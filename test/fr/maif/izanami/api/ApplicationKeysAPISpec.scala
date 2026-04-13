@@ -1,9 +1,11 @@
 package fr.maif.izanami.api
 
-import fr.maif.izanami.api.BaseAPISpec._
-import play.api.http.Status._
+import fr.maif.izanami.api.BaseAPISpec.*
+import play.api.http.Status.*
 import play.api.libs.json.JsArray
+import org.scalatest.DoNotDiscover
 
+@DoNotDiscover
 class ApplicationKeysAPISpec extends BaseAPISpec {
   "API key POST endpoint" should {
     "prevent api key creation if name or description is too long" in {
@@ -153,7 +155,6 @@ class ApplicationKeysAPISpec extends BaseAPISpec {
         .loggedAs("testu")
         .build();
 
-      val description = "my long description"
       val response =
         situation.createAPIKey(
           tenant = "my-tenant",
@@ -196,7 +197,11 @@ class ApplicationKeysAPISpec extends BaseAPISpec {
         )
         .build()
 
-      val result = fetchAPIKeysWithToken(tenant = "my-tenant", username = situation.user, token = situation.findTokenSecret(situation.user, "foo"))
+      val result = fetchAPIKeysWithToken(
+        tenant = "my-tenant",
+        username = situation.user,
+        token = situation.findTokenSecret(situation.user, "foo")
+      )
 
       result.status mustBe OK
       (result.json.get \\ "name").map(v =>
@@ -211,7 +216,6 @@ class ApplicationKeysAPISpec extends BaseAPISpec {
         "project-2"
       )
     }
-
 
     "return all API keys for given tenant" in {
       val situation = TestSituationBuilder()
@@ -330,10 +334,17 @@ class ApplicationKeysAPISpec extends BaseAPISpec {
       val secret = situation.findTokenSecret(situation.user, "foo");
 
       val res =
-        deleteApiKeyWithToken(tenant = "testtenant", name = "mykey", username = situation.user, token = secret)
+        deleteApiKeyWithToken(
+          tenant = "testtenant",
+          name = "mykey",
+          username = situation.user,
+          token = secret
+        )
       res.status mustBe NO_CONTENT
 
-      situation.fetchAPIKeys("testtenant").json.get.as[JsArray].value mustBe empty
+      situation.fetchAPIKeys(
+        "testtenant"
+      ).json.get.as[JsArray].value mustBe empty
     }
 
     "delete given API key" in {

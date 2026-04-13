@@ -1,8 +1,7 @@
 package fr.maif.izanami.helpers
 
-import fr.maif.izanami.api.BaseAPISpec.{TestUser, _}
-
-import java.time.{DayOfWeek, LocalDateTime, LocalTime}
+import fr.maif.izanami.api.BaseAPISpec.*
+import fr.maif.izanami.api.BaseAPISpec.TestUser
 
 object DemoDataLoader {
   def main(args: Array[String]): Unit = {
@@ -41,7 +40,7 @@ object DemoDataLoader {
       .loggedInWithAdminRights()
       .build()
 
-    val res = situation.changeFeatureStrategyForContext(
+    situation.changeFeatureStrategyForContext(
       tenant = "demo",
       project = "shop",
       contextPath = "formation",

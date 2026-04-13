@@ -1,29 +1,30 @@
 package fr.maif.izanami.api
 
+import fr.maif.izanami.api.BaseAPISpec.TestApiKey
+import fr.maif.izanami.api.BaseAPISpec.TestCondition
+import fr.maif.izanami.api.BaseAPISpec.TestDateTimePeriod
+import fr.maif.izanami.api.BaseAPISpec.TestDayPeriod
+import fr.maif.izanami.api.BaseAPISpec.TestFeature
+import fr.maif.izanami.api.BaseAPISpec.TestFeatureContext
+import fr.maif.izanami.api.BaseAPISpec.TestHourPeriod
+import fr.maif.izanami.api.BaseAPISpec.TestPercentageRule
+import fr.maif.izanami.api.BaseAPISpec.TestProject
+import fr.maif.izanami.api.BaseAPISpec.TestSituationBuilder
+import fr.maif.izanami.api.BaseAPISpec.TestTenant
+import fr.maif.izanami.api.BaseAPISpec.TestUserListRule
 import org.apache.pekko.http.scaladsl.model.sse.ServerSentEvent
-import fr.maif.izanami.api.BaseAPISpec.{
-  ALL_RIGHTS_USERNAME_PASSWORD,
-  TestApiKey,
-  TestCondition,
-  TestDateTimePeriod,
-  TestDayPeriod,
-  TestFeature,
-  TestFeatureContext,
-  TestHourPeriod,
-  TestPercentageRule,
-  TestProject,
-  TestSituationBuilder,
-  TestTenant,
-  TestUserListRule
-}
 import org.awaitility.Awaitility.await
-import play.api.libs.json.{JsArray, JsObject, Json}
+import play.api.libs.json.JsArray
+import play.api.libs.json.JsObject
+import play.api.libs.json.Json
 
-import java.time._
+import java.time.*
 import java.util.UUID
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.duration.SECONDS
+import org.scalatest.DoNotDiscover
 
+@DoNotDiscover
 class EventsAPISpec extends BaseAPISpec {
 
   "event endpoint" should {
@@ -193,7 +194,6 @@ class EventsAPISpec extends BaseAPISpec {
         },
         conditions = true
       )
-      Thread.sleep(2000)
 
       situation.createFeature(
         "f3",
@@ -261,7 +261,6 @@ class EventsAPISpec extends BaseAPISpec {
         },
         conditions = false
       )
-      Thread.sleep(2000)
 
       situation.createFeature(
         "f3",
@@ -329,7 +328,6 @@ class EventsAPISpec extends BaseAPISpec {
         },
         conditions = true
       )
-      Thread.sleep(2000)
 
       val projectResult =
         situation.fetchProject(tenant = tenant, projectId = "project")
@@ -382,9 +380,8 @@ class EventsAPISpec extends BaseAPISpec {
         },
         conditions = true
       )
-      Thread.sleep(2000)
 
-      val res = situation.changeFeatureStrategyForContext(
+      situation.changeFeatureStrategyForContext(
         tenant = tenant,
         project = "project",
         contextPath = "prod",
@@ -429,7 +426,6 @@ class EventsAPISpec extends BaseAPISpec {
         },
         conditions = true
       )
-      Thread.sleep(2000)
 
       situation.changeFeatureStrategyForContext(
         tenant = tenant,
@@ -484,7 +480,6 @@ class EventsAPISpec extends BaseAPISpec {
         },
         conditions = true
       )
-      Thread.sleep(2000)
 
       situation.changeFeatureStrategyForContext(
         tenant = tenant,
@@ -494,7 +489,7 @@ class EventsAPISpec extends BaseAPISpec {
         enabled = false
       )
 
-      val resp = situation.deleteFeatureOverload(
+      situation.deleteFeatureOverload(
         tenant = tenant,
         project = "project",
         path = "prod",
@@ -538,7 +533,6 @@ class EventsAPISpec extends BaseAPISpec {
         },
         conditions = true
       )
-      Thread.sleep(2000)
 
       val fid = situation
         .findFeatureId(tenant = tenant, project = "project", feature = "f1")
@@ -586,7 +580,6 @@ class EventsAPISpec extends BaseAPISpec {
         },
         conditions = true
       )
-      Thread.sleep(2000)
 
       situation.deleteProject(project = "project", tenant = tenant)
       await atMost (10, SECONDS) until {

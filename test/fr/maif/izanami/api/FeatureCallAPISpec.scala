@@ -1,10 +1,12 @@
 package fr.maif.izanami.api
 
-import fr.maif.izanami.api.BaseAPISpec._
+import fr.maif.izanami.api.BaseAPISpec.*
 import play.api.libs.json.JsObject
 
 import java.time.LocalDateTime
+import org.scalatest.DoNotDiscover
 
+@DoNotDiscover
 class FeatureCallAPISpec extends BaseAPISpec {
   "stale feature tracking" should {
     "not report too old never called feature as stale if stale tracking is disabled" in {

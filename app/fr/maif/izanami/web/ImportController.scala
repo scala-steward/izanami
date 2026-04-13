@@ -1,38 +1,45 @@
 package fr.maif.izanami.web
 
 import fr.maif.izanami.env.Env
-import fr.maif.izanami.errors.{IzanamiError, PartialImportFailure}
+import fr.maif.izanami.errors.IzanamiError
+import fr.maif.izanami.errors.PartialImportFailure
 import fr.maif.izanami.models.*
+import fr.maif.izanami.models.ConflictField.*
 import fr.maif.izanami.models.ExportedType.parseExportedType
-import fr.maif.izanami.models.features.{BooleanResult, BooleanResultDescriptor}
+import fr.maif.izanami.models.features.BooleanResult
+import fr.maif.izanami.models.features.BooleanResultDescriptor
 import fr.maif.izanami.services.FeatureService
 import fr.maif.izanami.utils.syntax.implicits.BetterSyntax
-import fr.maif.izanami.v1.OldKey.{oldKeyReads, toNewKey}
+import fr.maif.izanami.v1.JavaScript
+import fr.maif.izanami.v1.OldFeature
+import fr.maif.izanami.v1.OldGlobalScript
+import fr.maif.izanami.v1.OldKey.oldKeyReads
+import fr.maif.izanami.v1.OldKey.toNewKey
 import fr.maif.izanami.v1.OldScripts.doesUseHttp
-import fr.maif.izanami.v1.OldUsers.{oldUserReads, toNewUser}
-import fr.maif.izanami.v1.{
-  JavaScript,
-  OldFeature,
-  OldGlobalScript,
-  WasmManagerClient
-}
+import fr.maif.izanami.v1.OldUsers.oldUserReads
+import fr.maif.izanami.v1.OldUsers.toNewUser
+import fr.maif.izanami.v1.WasmManagerClient
 import fr.maif.izanami.wasm.WasmConfig
 import fr.maif.izanami.web.ImportController.*
 import fr.maif.izanami.web.ImportState.importResultWrites
-import io.otoroshi.wasm4s.scaladsl.WasmSourceKind.{Base64, Wasmo}
+import io.otoroshi.wasm4s.scaladsl.WasmSourceKind.Base64
+import io.otoroshi.wasm4s.scaladsl.WasmSourceKind.Wasmo
 import org.apache.pekko.util.ByteString
 import play.api.libs.Files
 import play.api.libs.json.*
 import play.api.mvc.*
 
 import java.net.URI
+import java.time.Instant
+import java.time.ZoneId
 import java.time.format.DateTimeFormatter
-import java.time.{Instant, ZoneId}
 import java.util.UUID
 import scala.collection.mutable.ArrayBuffer
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.ExecutionContext
+import scala.concurrent.Future
 import scala.io.Source
-import scala.util.{Right, Try}
+import scala.util.Right
+import scala.util.Try
 
 sealed trait ImportStatus
 case object ImportPending extends ImportStatus {
@@ -201,7 +208,13 @@ class ImportController(
       create: Option[Boolean],
       project: Option[String],
       projectPartSize: Option[Int],
-      inlineScript: Option[Boolean]
+      inlineScript: Option[Boolean],
+      featureName: Option[String],
+      featureDescription: Option[String],
+      featureTags: Option[String],
+      featureProject: Option[String],
+      featureEnabling: Option[String],
+      featureConditions: Option[String]
   ): Action[MultipartFormData[Files.TemporaryFile]] =
     maybeTokenAuthAction(tenant, RightLevel.Admin, Import).async(
       parse.multipartFormData
@@ -225,7 +238,37 @@ class ImportController(
             BadRequest(Json.obj("message" -> "Missing timezone")).future
           )
       } else if (version == 2) {
-        importV2Data(request, tenant, conflict)
+        ImportController.parseStrategy(conflict)
+          .fold(Future.successful(BadRequest(
+            Json.obj("message" -> s"Unknown conflict strategy ${conflict}")
+          )))(parsedStrategy => {
+            val specificStrategies = Map(
+              FeatureName -> featureName,
+              FeatureDescription -> featureDescription,
+              FeatureEnabling -> featureEnabling,
+              FeatureConditions -> featureConditions,
+              FeatureProject -> featureProject,
+              FeatureTags -> featureTags
+            )
+              .view
+              .mapValues(maybeStrategy =>
+                maybeStrategy.flatMap(strategy =>
+                  ImportController.parseFieldSpecificStrategy(strategy).filter(
+                    s =>
+                      s != Fail
+                  )
+                )
+              )
+              .collect {
+                case (key, Some(value)) => (key, value)
+              }.toMap
+
+            val conflictStrategy = ConflictStrategy(
+              defaultStrategy = parsedStrategy,
+              specificStrategies = specificStrategies
+            )
+            importV2Data(request, tenant, conflictStrategy)
+          })
       } else {
         BadRequest(Json.obj("message" -> s"Invalid version: $version")).future
       }
@@ -234,14 +277,11 @@ class ImportController(
   def importV2Data(
       request: UserNameRequest[MultipartFormData[Files.TemporaryFile]],
       tenant: String,
-      conflict: String
+      conflictStrategy: ConflictStrategy
   ): Future[Result] = {
     val files: Map[String, URI] =
       request.body.files.map(f => (f.key, f.ref.path.toUri)).toMap
-    (for (
-      conflictStrategy <- ImportController.parseStrategy(conflict);
-      uri <- files.get("export")
-    ) yield {
+    (for (uri <- files.get("export")) yield {
       Try(scala.io.Source.fromFile(uri)).toEither.left
         .map(ex => {
           InternalServerError(
@@ -436,17 +476,17 @@ class ImportController(
             case (Some(str1), Some(str2)) => str1.length < str2.length
           }
         }
-      })
+      });
 
-      (
-        messages.toSeq,
-        data ++ Map(
-          FeatureType -> features,
-          OverloadType -> overloads,
-          KeyType -> keys,
-          ContextType -> contexts
-        ) - LocalContextType - GlobalContextType
-      )
+    (
+      messages.toSeq,
+      data ++ Map(
+        FeatureType -> features,
+        OverloadType -> overloads,
+        KeyType -> keys,
+        ContextType -> contexts
+      ) - LocalContextType - GlobalContextType
+    )
   }
 
   def castOldOverloadToNewOverloadIfNeeded(json: JsObject): JsObject = {
@@ -882,6 +922,15 @@ object ImportController {
     }
   }
 
+  def parseFieldSpecificStrategy(str: String)
+      : Option[FieldSpecificImportConflictStrategy] = {
+    Option(str).map(_.toUpperCase).flatMap {
+      case "OVERWRITE" => Some(MergeOverwrite)
+      case "SKIP"      => Some(Skip)
+      case _           => None
+    }
+  }
+
   def extractProjectAndName(
       oldFeature: OldFeature,
       strategy: ProjectChoiceStrategy
@@ -939,12 +988,14 @@ object ImportController {
   }
 
   sealed trait ImportConflictStrategy
+  sealed trait FieldSpecificImportConflictStrategy
+      extends ImportConflictStrategy
 
   case object Fail extends ImportConflictStrategy
 
-  case object MergeOverwrite extends ImportConflictStrategy
+  case object MergeOverwrite extends FieldSpecificImportConflictStrategy
 
-  case object Skip extends ImportConflictStrategy
+  case object Skip extends FieldSpecificImportConflictStrategy
 
   case object Replace extends ImportConflictStrategy
 }

@@ -1,10 +1,12 @@
 package fr.maif.izanami.api
 
-import fr.maif.izanami.api.BaseAPISpec._
-import play.api.http.Status._
+import fr.maif.izanami.api.BaseAPISpec.*
+import play.api.http.Status.*
 
 import scala.util.Success
+import org.scalatest.DoNotDiscover
 
+@DoNotDiscover
 class TenantAPISpec extends BaseAPISpec {
   "Tenant DELETE endpoint" should {
     "delete tenant if user is tenant admin" in {
@@ -65,7 +67,7 @@ class TenantAPISpec extends BaseAPISpec {
         .build()
 
       val secret = situation.findTokenSecret(situation.user, "foo")
-      var response = createTenantWithToken(
+      val response = createTenantWithToken(
         name = "foo",
         username = situation.user,
         token = secret
@@ -204,7 +206,8 @@ class TenantAPISpec extends BaseAPISpec {
       )
 
       val token = (tokenResponse.json.get \ "token").as[String]
-      val fetchResponse = fetchTenantsWithToken(username = "tuser", token = token)
+      val fetchResponse =
+        fetchTenantsWithToken(username = "tuser", token = token)
 
       fetchResponse.status mustBe OK
       val json = fetchResponse.json
@@ -286,7 +289,7 @@ class TenantAPISpec extends BaseAPISpec {
         .build()
 
       val secret = situation.findTokenSecret(situation.user, "foo")
-      var response = readTenantWithToken(
+      val response = readTenantWithToken(
         name = "foo",
         username = situation.user,
         token = secret

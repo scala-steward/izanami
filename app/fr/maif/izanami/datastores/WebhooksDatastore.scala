@@ -26,6 +26,11 @@ import java.time.Instant
 import java.time.ZoneOffset
 import java.util.UUID
 import scala.concurrent.Future
+import fr.maif.izanami.utils.FutureEither
+import fr.maif.izanami.errors.InternalServerError
+import fr.maif.izanami.errors.TenantDoesNotExists
+import fr.maif.izanami.utils.syntax.implicits.BetterFuture
+import fr.maif.izanami.utils.Done
 
 class WebhooksDatastore(val env: Env) extends Datastore {
 
@@ -64,7 +69,7 @@ class WebhooksDatastore(val env: Env) extends Datastore {
       eventId: Long,
       lastCount: Int,
       nextCall: Instant
-  ): Future[Unit] = {
+  ): Future[Done] = {
     Tenant.isTenantValid(tenant)
     env.postgresql
       .queryOne(
@@ -84,14 +89,14 @@ class WebhooksDatastore(val env: Env) extends Datastore {
       ) { r =>
         Some(())
       }
-      .map(_ => ())
+      .map(_ => Done.done())
   }
 
   def deleteWebhookCall(
       tenant: String,
       webhook: UUID,
       eventId: Long
-  ): Future[Unit] = {
+  ): Future[Done] = {
     require(Tenant.isTenantValid(tenant))
     env.postgresql
       .queryRaw(
@@ -102,11 +107,11 @@ class WebhooksDatastore(val env: Env) extends Datastore {
            |RETURNING webhook
            |""".stripMargin,
         List(webhook, java.lang.Long.valueOf(eventId))
-      ) { _ => () }
+      ) { _ => Done.done() }
   }
 
   def findAbandoneddWebhooks(tenant: String)
-      : Future[Option[Seq[(LightWebhook, IzanamiEvent, Int)]]] = {
+      : FutureEither[Seq[(LightWebhook, IzanamiEvent, Int)]] = {
     require(Tenant.isTenantValid(tenant))
     env.postgresql
       .queryAll(
@@ -130,12 +135,13 @@ class WebhooksDatastore(val env: Env) extends Datastore {
           izanamiEvent <- event.asOpt[IzanamiEvent](EventService.eventFormat);
           count <- r.optInt("count")
         ) yield (webhook, izanamiEvent, count)
-      }
-      .map(s => Some(s))
+      }.map(v => FutureEither.success(v))
       .recover {
-        case f: PgException if f.getSqlState == RELATION_DOES_NOT_EXISTS => None
-        case e => throw e
-      }
+        case f: PgException if f.getSqlState == RELATION_DOES_NOT_EXISTS => FutureEither.failure(TenantDoesNotExists(tenant))
+        case e => {
+          FutureEither.failure(InternalServerError("Something went wrong while searching abandonned hooks"))
+        }
+      }.mapToFEither.flatMap(f => f)
   }
 
   def updateWebhook(

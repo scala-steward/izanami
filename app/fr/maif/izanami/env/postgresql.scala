@@ -490,12 +490,8 @@ class Postgresql(env: Env) {
           ).execute(io.vertx.sqlclient.Tuple.from(castedParams.toArray))
         }
         conn
-          .map(conn => lambda(conn))
-          .map(f => f.scala)
-          .getOrElse(executeInTransaction(
-            lambda(_).scala,
-            silentFor = silentFor
-          ))
+          .map(conn => lambda(conn).scala)
+          .getOrElse(executeInTransaction(conn => lambda(conn).scala, silentFor = silentFor))
       case false =>
         conn
           .map(c =>

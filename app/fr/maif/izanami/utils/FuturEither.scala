@@ -5,6 +5,8 @@ import play.api.mvc.Result
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.Future
+import fr.maif.izanami.utils.syntax.implicits.BetterFutureEither
+import fr.maif.izanami.utils.syntax.implicits.BetterFuture
 
 case class FutureEither[+A](value: Future[Either[IzanamiError, A]]) {
   def flatMap[B](
@@ -67,6 +69,17 @@ case class FutureEither[+A](value: Future[Either[IzanamiError, A]]) {
       case Left(err) => errMapper(err)
       case Right(v)  => valueMapper(v)
     })
+  }
+  def transform[R](t: (curr: Either[IzanamiError, A]) => Either[IzanamiError, R])(implicit
+      ec: ExecutionContext
+  ) = {
+    value.map(e => t(e)).toFEither
+  }
+
+  def transformWith[R](t: (curr: Either[IzanamiError, A]) => FutureEither[R])(implicit
+      ec: ExecutionContext
+  ) = {
+    value.map(e => t(e)).mapToFEither.flatMap(f => f)
   }
 }
 

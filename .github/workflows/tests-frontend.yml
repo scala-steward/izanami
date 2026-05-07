@@ -34,7 +34,7 @@ jobs:
         run: |
           cd izanami-frontend
           npm ci --force
-          npx playwright install --with-deps
+          npx playwright install --with-deps chromium
           npm run build
       - name: build backend
         run: sbt "set test in assembly := {}" clean assembly

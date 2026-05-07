@@ -52,6 +52,7 @@ import { TimeZoneSelect } from "../components/TimeZoneSelect";
 import { Loader } from "../components/Loader";
 import { DEFAULT_TIMEZONE } from "../utils/datetimeUtils";
 import { PrevisionalRightsPill } from "../components/PrevisionalRightsPill";
+import { ErrorDisplay } from "../components/FeatureForm";
 
 export function TenantSettings(props: { tenant: string }) {
   const { tenant } = props;
@@ -259,15 +260,13 @@ export function TenantSettings(props: { tenant: string }) {
               submit={(request) => {
                 return importData(tenant, request)
                   .then((importRes) => {
-                    if (
-                      importRes.details ||
-                      importRes?.message
-                    ) {
+                    if (importRes.details || importRes?.message) {
                       askConfirmation(
                         <>
                           {importRes.details && (
                             <ImportError
                               details={importRes.details}
+                              message={importRes.message}
                             />
                           )}
                         </>,
@@ -344,30 +343,73 @@ export function TenantSettings(props: { tenant: string }) {
 }
 
 function ImportError(props: {
-  details: ImportErrorDetails;
+  details?: ImportErrorDetails;
+  message?: string;
 }) {
-  const { details } = props;
-  const rows = Object.entries(details).sort(([key1, {order: order1}], [key2, {order: order2}]) => order1 - order2)
-  .map(([name, {failures}], index) => {
-    return <>
-      <div className="fw-bold mb-1" style={{fontSize: "1.2rem", marginTop: "0.5rem"}} key={index}>{name} failures</div>
-      {failures.map(({row, error}, index) => {
-        return <div key={index} className="mb-1">
-          <div className="d-block"><code ><pre className="mb-0">{row}</pre></code></div>
-          <span className="fw-bold">Cause: </span>{error}
-        </div>
-      })}
-    </>
-  })
-  return (
-    <div>
-      <h3>Import errors !</h3>
-      Import failed due to some errors. Since there was errors, nothing was inserted / updated.<br/>
-      Fix error listed belows and try to reimport. Note that some errors may be "sequential" (for instance failing to import a project will trigger feature insertion).<br/>
-      Errors are sorted by insertion order, therefore fixing top rows may fix below ones.
-      {rows}
-    </div>
-  );
+  const { details, message } = props;
+
+  if (details) {
+    const rows = Object.entries(details)
+      .sort(
+        ([key1, { order: order1 }], [key2, { order: order2 }]) =>
+          order1 - order2,
+      )
+      .map(([name, { failures }], index) => {
+        return (
+          <>
+            <div
+              className="fw-bold mb-1"
+              style={{ fontSize: "1.2rem", marginTop: "0.5rem" }}
+              key={index}
+            >
+              {name} failures
+            </div>
+            {failures.map(({ row, error }, index) => {
+              return (
+                <div key={index} className="mb-1">
+                  <div className="d-block">
+                    <code>
+                      <pre className="mb-0">{row}</pre>
+                    </code>
+                  </div>
+                  <span className="fw-bold">Cause: </span>
+                  {error}
+                </div>
+              );
+            })}
+          </>
+        );
+      });
+    return (
+      <div>
+        <h3>Import errors !</h3>
+        Import failed due to some errors. Since there was errors, nothing was
+        inserted / updated.
+        <br />
+        Fix error listed belows and try to reimport. Note that some errors may
+        be "sequential" (for instance failing to import a project will trigger
+        feature insertion).
+        <br />
+        Errors are sorted by insertion order, therefore fixing top rows may fix
+        below ones.
+        {rows}
+      </div>
+    );
+  } else if (message) {
+    return (
+      <div>
+        <h3>Import errors !</h3>
+        {message}
+      </div>
+    );
+  } else {
+    return (
+      <div>
+        <h3>Import errors !</h3>
+        An unknown import error occured
+      </div>
+    );
+  }
 }
 
 function ImportForm(props: {
@@ -385,7 +427,7 @@ function ImportForm(props: {
     control,
     getValues,
     watch,
-    formState: { isSubmitting },
+    formState: { isSubmitting, errors },
   } = methods;
 
   watch(["fineTuneFeatureConflict"]);
@@ -445,7 +487,12 @@ function ImportForm(props: {
           <Tooltip id="exported-file">
             Exported ndjson file from another v2 instance
           </Tooltip>
-          <input className="form-control" type="file" {...register("file")} />
+          <input
+            className="form-control"
+            type="file"
+            {...register("file", { required: "Import file is required" })}
+          />
+          <ErrorDisplay error={errors?.file} />
         </label>
         <div
           className="mt-3 d-flex justify-content-end align-items-center align-self-end"
@@ -658,7 +705,6 @@ const CONFLICT_STRATEGIES_OPTIONS = [
   },
   { label: "fail", value: "fail" },
 ] as const;
-
 
 function ExportForm(props: {
   cancel: () => void;
@@ -1289,6 +1335,7 @@ export function ConflictStrategySelect({
             options={CONFLICT_STRATEGIES_OPTIONS.filter(
               ({ value }) => value !== "fail",
             )}
+            defaultValue={{ value: "skip", label: "skip" }}
           />
         )}
       />

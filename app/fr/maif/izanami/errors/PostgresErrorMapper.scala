@@ -31,6 +31,7 @@ object PostgresErrorMapper {
     "apikeys_pkey" -> ApiKeyWithThisNameAlreadyExist,
     "apikeys_clientid_key" -> ApiKeyWithThisClientIdAlreadyExist,
     "apikeys_projects_pkey" -> ThisAPIKeyIsAlreadyAssignedToThisProject,
+    "apikeys_projects_apikey_fkey" -> AssociatedApiKeyDoesNotExist,
     // Webhooks
     "webhooks_pkey" -> WebhookWithThisIdAlreadyExist,
     "webhooks_name_key" -> WebhookWithThisNameAlreadyExist,

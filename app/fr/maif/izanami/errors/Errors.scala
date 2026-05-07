@@ -688,6 +688,11 @@ case object WebhookProjectDoesNotExist extends IzanamiError(
         "Webhook project does not exist",
       status = BAD_REQUEST
     )
+case object ApiKeyProjectDoesNotExist extends IzanamiError(
+      message =
+        "Api key project does not exist",
+      status = BAD_REQUEST
+    )
 case object ProjectDoesNotExist extends IzanamiError(
       message = "Project does not exist",
       status = BAD_REQUEST
@@ -701,6 +706,10 @@ case object AssociatedWebhookDoesNotExist extends IzanamiError(
         "Webhook does not exist",
       status = BAD_REQUEST
     )
+case object AssociatedApiKeyDoesNotExist extends IzanamiError(
+  message = "API key does not exist",
+  status = BAD_REQUEST
+)
 case object UserAlreadyHaveRightsForThisKey
     extends IzanamiError(
       message = "User already have right for this key",

@@ -100,6 +100,7 @@ import scala.util.Try
 import fr.maif.izanami.utils.Done
 import org.slf4j.LoggerFactory
 import fr.maif.izanami.api.BaseAPISpec.logger
+import org.scalatest.flatspec.AnyFlatSpec
 
 case class StubServer(
     server: WireMockServer,

@@ -38,6 +38,7 @@ import {
 import { isArray } from "lodash";
 import toast from "react-hot-toast";
 import * as React from "react";
+import { errorToast } from "./toastUtils";
 
 export enum MutationNames {
   TENANTS = "TENANTS",
@@ -1152,27 +1153,7 @@ function _handleFetchResponse<T>(
           : error?.message
           ? error.message
           : JSON.stringify(error);
-      toast.error(
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-          }}
-        >
-          {msg}
-          <button
-            onClick={() => toast.dismiss(id)}
-            className="btn btn-sm ms-3 me-0"
-          >
-            X
-          </button>
-        </div>,
-        {
-          id: id,
-          icon: <i className="fa-solid fa-circle-exclamation" aria-hidden></i>,
-        },
-      );
-
+      errorToast(msg)
       throw error;
     });
 }

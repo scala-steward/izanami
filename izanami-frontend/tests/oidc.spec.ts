@@ -109,6 +109,7 @@ test.describe("Global settings page should", () => {
     await page.getByRole("option", { name: "Update" }).click();
 
     await page.getByRole("button", { name: "Update configuration" }).click();
+    await expect(page.getByText("Configuration has been updated successfully")).toBeVisible()
 
     const page2 = await (await browser.newContext()).newPage();
     await page2.context().clearCookies();
@@ -260,6 +261,7 @@ test.describe("Global settings page should", () => {
     await page.getByRole("option", { name: "Read" }).click();
 
     await page.getByRole("button", { name: "Update configuration" }).click();
+    await expect(page.getByText("Configuration has been updated successfully")).toBeVisible()
 
     /******************** ADMIN ROLE SETUP ************************/
     await page.getByRole("button", { name: "Add role" }).click();
@@ -293,6 +295,7 @@ test.describe("Global settings page should", () => {
 
     await page.getByRole("button", { name: "Update configuration" }).click();
     await page.getByRole("button", { name: "Confirm" }).click();
+    await expect(page.getByText("Configuration has been updated successfully")).toBeVisible();
 
     /******************** OIDC USER CREATION ************************/
     const page2 = await (await browser.newContext()).newPage();

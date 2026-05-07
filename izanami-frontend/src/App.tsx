@@ -780,7 +780,7 @@ export function Layout() {
               </header>
               <Toaster
                 toastOptions={{
-                  className: "toast-error",
+                  className: "toast",
                 }}
               />
               <Outlet />

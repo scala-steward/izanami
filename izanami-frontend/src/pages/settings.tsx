@@ -14,7 +14,7 @@ import {
   fetchOpenIdConnectConfiguration,
   queryTenants,
 } from "../utils/queries";
-import { Configuration, rightRoleModes, TLevel, TRights } from "../utils/types";
+import { Configuration, rightRoleModes, TRights } from "../utils/types";
 import { customStyles } from "../styles/reactSelect";
 import { Form } from "../components/Form";
 import { Loader } from "../components/Loader";
@@ -30,7 +30,7 @@ import { ErrorMessage } from "../components/HookFormErrorMessage";
 import { rightStateArrayToBackendMap } from "../utils/rightUtils";
 import { isEqual } from "lodash";
 import { IzanamiContext } from "../securityContext";
-
+import { successToast } from "../utils/toastUtils";
 const MAILER_OPTIONS = [
   { label: "MailJet", value: "MailJet" },
   { label: "MailGun", value: "MailGun" },
@@ -97,6 +97,9 @@ export function Settings() {
   });
   const configurationMutationQuery = useMutation({
     mutationFn: (data: UpdateConfiguration) => updateConfiguration(data),
+    onSuccess: () => {
+      successToast("Configuration has been updated successfully");
+    }
   });
   const { askConfirmation } = useContext(IzanamiContext);
 

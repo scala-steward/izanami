@@ -1,4 +1,4 @@
-.toast-error {
+.toast {
   box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.5);
   max-width: 500px;
 }
@@ -17,4 +17,22 @@
 
 .toast-error i {
   color: var(--color-red);
+}
+
+.toast-success {
+  border: 3px solid var(--color-green);
+  & button {
+    background-color: white;
+    color: var(--color-green);
+    border: 1px solid white;
+  }
+  & button:hover {
+    background-color: white;
+    color: var(--color-green);
+    border: 1px solid var(--color-green);
+  }
+
+  & i {
+  color: var(--color-green);
+}
 }

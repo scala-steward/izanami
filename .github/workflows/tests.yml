@@ -36,4 +36,4 @@ jobs:
       - uses: coursier/cache-action@v6
       - name: test
         id: test
-        run: sbt test
+        run: sbt "testOnly *AllTests"

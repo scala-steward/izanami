@@ -291,11 +291,11 @@ class ImportApiSpec extends BaseAPISpec {
       featureAnomalies must have size 2
       featureAnomalies must contain theSameElementsAs (Seq(
         (
-          "A feature with this name already exist for this project.",
+          "A feature with this name already exists for this project.",
           """{"id":"00273cce-5b8e-447b-8a2e-0ba8d39bdea9","name":"foobar","value":null,"enabled":false,"project":"test-project","metadata":{},"conditions":[{"rule":{"percentage":10},"period":null}],"created_at":"2026-04-13T14:14:39.312741+00:00","description":"foo","result_type":"boolean","script_config":null}"""
         ),
         (
-          "A feature with this name already exist for this project.",
+          "A feature with this name already exists for this project.",
           """{"id":"00273cce-5b8e-447b-8a2e-0ba8d39bdea7","name":"foobar","value":null,"enabled":false,"project":"test-project","metadata":{},"conditions":[{"rule":{"percentage":10},"period":null}],"created_at":"2026-04-13T14:14:39.312741+00:00","description":"foo","result_type":"boolean","script_config":null}"""
         )
       ))
@@ -378,7 +378,7 @@ class ImportApiSpec extends BaseAPISpec {
         extractRowFieldAndError(rows = featureAnomalies, fieldName = "id")
 
       extractedIds must contain theSameElementsAs (Seq((
-        "A feature with this name already exist for this project.",
+        "A feature with this name already exists for this project.",
         "fifou"
       )))
 
@@ -430,7 +430,7 @@ class ImportApiSpec extends BaseAPISpec {
         extractRowFieldAndError(rows = featureAnomalies, fieldName = "id")
 
       extractedIds must contain theSameElementsAs (Seq((
-        "A feature with this name already exist for this project.",
+        "A feature with this name already exists for this project.",
         "fifou"
       )))
 
@@ -483,7 +483,7 @@ class ImportApiSpec extends BaseAPISpec {
         extractRowFieldAndError(rows = featureAnomalies, fieldName = "id")
 
       extractedIds must contain theSameElementsAs (Seq((
-        "A feature with this name already exist for this project.",
+        "A feature with this name already exists for this project.",
         "fifou"
       )))
 

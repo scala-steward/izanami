@@ -36,4 +36,3 @@ export async function generate() {
   return await browser.close();
 }
 
-generate();

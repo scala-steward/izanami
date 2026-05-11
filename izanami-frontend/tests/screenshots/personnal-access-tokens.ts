@@ -42,7 +42,7 @@ export async function generate() {
   await page.getByLabel("Name*").fill("another-token");
   await page.getByRole("combobox", { name: "Tenant" }).click();
   await page.getByRole("option", { name: "bookstore" }).click();
-  await page.getByRole("combobox", { name: "Rights" }).click();
+  await page.getByRole("combobox", { name: "Rights Select...", exact: true }).click();
   await page.getByRole("option", { name: "EXPORT" }).click();
 
   await page.getByRole("button", { name: "Save" }).scrollIntoViewIfNeeded();
@@ -76,4 +76,3 @@ export async function generate() {
   await screenshot2("other-user-tokens");
 }
 
-generate();

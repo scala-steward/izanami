@@ -482,7 +482,9 @@ function ImportForm(props: {
           />
         </label>
         <label className="mt-3 mb-3">
-          Fine tune feature conflict strategy
+          Fine tune feature conflict strategy<Tooltip id="fine-tune-features">
+            Fine tuning feature conflict strategy allows to define a merge strategy per fields for feature.
+          </Tooltip>
           <input
             type="checkbox"
             className="izanami-checkbox"

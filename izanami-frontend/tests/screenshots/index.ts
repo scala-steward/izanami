@@ -14,9 +14,11 @@ import { generate as exportImportV2 } from "./export-import-v2";
 import { generate as nonBooleanFeatureGenerate } from "./non-boolean-features";
 import { generate as auditLogGenerate } from "./audit-logs";
 import { generate as protectedContextGenerate } from "./protected-contexts";
+import { generate as personalAccessToken } from "./personnal-access-tokens";
+import { generate as staleFeatures } from "./stale-features";
 
 async function generateAll() {
-  await apiKeyGenerate();
+  /*await apiKeyGenerate();
   await bulkGenerate();
   await contextGenerate();
   await gettingStarted();
@@ -31,7 +33,9 @@ async function generateAll() {
   await exportImportV2();
   await nonBooleanFeatureGenerate();
   await auditLogGenerate();
-  await protectedContextGenerate();
+  await protectedContextGenerate();*/
+  await personalAccessToken();
+  await staleFeatures();
 }
 
 generateAll();

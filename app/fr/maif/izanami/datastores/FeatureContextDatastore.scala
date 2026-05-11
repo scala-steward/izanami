@@ -514,7 +514,9 @@ class FeatureContextDatastore(val env: Env) extends Datastore {
                           if f.getSqlState == RELATION_DOES_NOT_EXISTS =>
                         Left(TenantDoesNotExists(tenant))
                       case f: PgException
-                          if f.getSqlState == FOREIGN_KEY_VIOLATION && f.getConstraint == "feature_contexts_strategies_feature_project_fkey" =>
+                          if f.getSqlState == FOREIGN_KEY_VIOLATION &&
+                            f.getConstraint ==
+                            "feature_contexts_strategies_feature_project_fkey" =>
                         Left(
                           NoFeatureMatchingOverloadDefinition(
                             tenant = tenant,

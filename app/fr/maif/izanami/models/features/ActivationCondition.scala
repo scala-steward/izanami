@@ -107,9 +107,9 @@ case class DateRangeActivationCondition(
 ) extends LegacyCompatibleCondition {
   def active(context: RequestContext, featureId: String): Boolean = {
     val now = context.now
-    begin.forall(i => i.atZone(timezone).toInstant.isBefore(now)) && end.forall(
-      i =>
-        i.atZone(timezone).toInstant.isAfter(now)
+    begin.forall(i => i.atZone(timezone).toInstant.isBefore(now)) &&
+    end.forall(i =>
+      i.atZone(timezone).toInstant.isAfter(now)
     )
   }
 }
@@ -154,10 +154,12 @@ case class ActivationDayOfWeeks(days: Set[DayOfWeek]) {
 
 object FeaturePeriod {
   implicit val activationPeriodRead: Reads[FeaturePeriod] = json => {
-    val maybeHourPeriod =
-      (json \ "hourPeriods").asOpt[Set[HourPeriod]].getOrElse(Set())
-    val maybeActivationDays =
-      (json \ "activationDays").asOpt[ActivationDayOfWeeks]
+    val maybeHourPeriod = (json \ "hourPeriods").asOpt[Set[
+      HourPeriod
+    ]].getOrElse(Set())
+    val maybeActivationDays = (json \ "activationDays").asOpt[
+      ActivationDayOfWeeks
+    ]
     val maybeBegin = (json \ "begin").asOpt[Instant](instantReads(
       DateTimeFormatter.ISO_OFFSET_DATE_TIME
     ))

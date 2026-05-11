@@ -64,8 +64,9 @@ class SearchController(
                     case (rowType, rowJson, _, tenant) =>
                       buildPath(rowType, rowJson, tenant)
                         .map(pathElements => {
-                          val name =
-                            (rowJson \ "name").asOpt[String].getOrElse("")
+                          val name = (rowJson \ "name").asOpt[String].getOrElse(
+                            ""
+                          )
                           val jsonPath =
                             Json.toJson(
                               pathElements.prepended(TenantPathElement(tenant))

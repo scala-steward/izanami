@@ -514,7 +514,8 @@ class PersonnalAccessTokenDetailledRightForTenantAction(
                   Left(
                     Forbidden(
                       Json.obj(
-                        "message" -> "User does not have enough rights for this operation"
+                        "message" ->
+                          "User does not have enough rights for this operation"
                       )
                     )
                   )
@@ -641,7 +642,8 @@ class PersonnalAccessTokenProjectAuthAction(
                   Left(
                     Forbidden(
                       Json.obj(
-                        "message" -> "User does not have enough rights for this operation"
+                        "message" ->
+                          "User does not have enough rights for this operation"
                       )
                     )
                   )
@@ -683,7 +685,8 @@ class PersonnalAccessTokenProjectAuthAction(
                   Left(
                     Forbidden(
                       Json.obj(
-                        "message" -> "User does not have enough rights for this operation"
+                        "message" ->
+                          "User does not have enough rights for this operation"
                       )
                     )
                   )
@@ -797,13 +800,15 @@ class WorkerActionBuilder(
             if (!isContextAllowedByAllowlist) {
               Results.BadRequest(
                 Json.obj(
-                  "message" -> "Requested context isn't present in allowlist for this worker instance"
+                  "message" ->
+                    "Requested context isn't present in allowlist for this worker instance"
                 )
               )
             } else if (containBlocklistedContext) {
               Results.BadRequest(
                 Json.obj(
-                  "message" -> "Requested context is blocklisted for this worker instance"
+                  "message" ->
+                    "Requested context is blocklisted for this worker instance"
                 )
               )
             } else {
@@ -994,7 +999,8 @@ class PersonnalAccessTokenKeyAuthAction(
                   Left(
                     Forbidden(
                       Json.obj(
-                        "message" -> "User does not have enough rights for this operation"
+                        "message" ->
+                          "User does not have enough rights for this operation"
                       )
                     )
                   )
@@ -1031,7 +1037,8 @@ class PersonnalAccessTokenKeyAuthAction(
                   Left(
                     Forbidden(
                       Json.obj(
-                        "message" -> "User does not have enough rights for this operation"
+                        "message" ->
+                          "User does not have enough rights for this operation"
                       )
                     )
                   )
@@ -1094,13 +1101,14 @@ class PersonnalAccessTokenTenantAuthAction(
               .findUser(username)
               .map {
                 case Some(user)
-                    if user.admin || user.tenantRights
-                      .get(tenant)
-                      .exists(r =>
-                        RightLevel
-                          .superiorOrEqualLevels(minimumLevel)
-                          .contains(r)
-                      ) =>
+                    if user.admin ||
+                      user.tenantRights
+                        .get(tenant)
+                        .exists(r =>
+                          RightLevel
+                            .superiorOrEqualLevels(minimumLevel)
+                            .contains(r)
+                        ) =>
                   Right(
                     StandardUserInformation(
                       username = username,
@@ -1111,7 +1119,8 @@ class PersonnalAccessTokenTenantAuthAction(
                   Left(
                     Forbidden(
                       Json.obj(
-                        "message" -> "User does not have enough rights for this operation"
+                        "message" ->
+                          "User does not have enough rights for this operation"
                       )
                     )
                   )
@@ -1151,7 +1160,8 @@ class PersonnalAccessTokenTenantAuthAction(
                   Left(
                     Forbidden(
                       Json.obj(
-                        "message" -> "User does not have enough rights for this operation"
+                        "message" ->
+                          "User does not have enough rights for this operation"
                       )
                     )
                   )
@@ -1220,7 +1230,8 @@ class PersonnalAccessTokenAdminAuthAction(
                   Left(
                     Forbidden(
                       Json.obj(
-                        "message" -> "User does not have enough rights for this operation"
+                        "message" ->
+                          "User does not have enough rights for this operation"
                       )
                     )
                   )
@@ -1256,7 +1267,8 @@ class PersonnalAccessTokenAdminAuthAction(
                   Left(
                     Forbidden(
                       Json.obj(
-                        "message" -> "User does not have enough rights for this operation"
+                        "message" ->
+                          "User does not have enough rights for this operation"
                       )
                     )
                   )
@@ -1334,7 +1346,8 @@ class TenantAuthAction(
               Future.successful(
                 Forbidden(
                   Json.obj(
-                    "message" -> "User does not have enough rights for this operation"
+                    "message" ->
+                      "User does not have enough rights for this operation"
                   )
                 )
               )
@@ -1466,7 +1479,8 @@ class ProjectAuthAction(
                     .successful(
                       Forbidden(
                         Json.obj(
-                          "message" -> "User does not have enough rights for this operation"
+                          "message" ->
+                            "User does not have enough rights for this operation"
                         )
                       )
                     )
@@ -1590,7 +1604,8 @@ class KeyAuthAction(
                 .successful(
                   Forbidden(
                     Json.obj(
-                      "message" -> "User does not have enough rights for this operation"
+                      "message" ->
+                        "User does not have enough rights for this operation"
                     )
                   )
                 )

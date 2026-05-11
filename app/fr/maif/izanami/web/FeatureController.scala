@@ -411,14 +411,16 @@ class FeatureController(
         val missing = featureRequest.projects.diff(featuresByProjects.keySet)
         Forbidden(
           Json.obj(
-            "message" -> s"You're not allowed for projects ${missing.mkString(",")}"
+            "message" ->
+              s"You're not allowed for projects ${missing.mkString(",")}"
           )
         ).future
       } else if (!featureRequest.features.subsetOf(resultingFeatures)) {
         val missing = featureRequest.features.diff(resultingFeatures)
         Forbidden(
           Json.obj(
-            "message" -> s"You're not allowed for features ${missing.mkString(",")}, you don't have right for this project"
+            "message" ->
+              s"You're not allowed for features ${missing.mkString(",")}, you don't have right for this project"
           )
         ).future
       } else {
@@ -439,12 +441,13 @@ class FeatureController(
                   .map(either => (feature, either))
                   .map {
                     case (feature, Left(error)) =>
-                      feature.id -> Json
-                        .obj(
-                          "error" -> error.message,
-                          "name" -> feature.name,
-                          "project" -> feature.project
-                        )
+                      feature.id ->
+                        Json
+                          .obj(
+                            "error" -> error.message,
+                            "name" -> feature.name,
+                            "project" -> feature.project
+                          )
                     case (feature, Right(active)) =>
                       feature.id -> Json.obj(
                         "active" -> active,
@@ -506,7 +509,8 @@ class FeatureController(
               })
           } else {
             Future.successful(Unauthorized(Json.obj(
-              "message" -> "Your token doesn't have enough right to perform this operation"
+              "message" ->
+                "Your token doesn't have enough right to perform this operation"
             )))
           }
         })

@@ -269,7 +269,8 @@ object OldScripts {
           case node: FunctionNode => {
             val params = node.getParams
             if (
-              node.getName == "enabled" && (node.getParent == null || node.getParent.getParent == null)
+              node.getName == "enabled" &&
+              (node.getParent == null || node.getParent.getParent == null)
             ) {
               hasFunctionEnoughParameters = params.size() >= 4
               if (params.size() >= 4 && params.get(3).isInstanceOf[Name]) {

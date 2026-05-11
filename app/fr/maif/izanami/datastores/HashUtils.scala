@@ -18,7 +18,8 @@ object HashUtils {
     MessageDigest.getInstance("SHA-512").digest(toHash.getBytes)
 
   def hexSha512(toHash: String): String =
-    Hex encodeHexString MessageDigest
-      .getInstance("SHA-512")
-      .digest(toHash.getBytes)
+    Hex encodeHexString
+      MessageDigest
+        .getInstance("SHA-512")
+        .digest(toHash.getBytes)
 }

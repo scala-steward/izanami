@@ -74,7 +74,8 @@ class LegacyController(
                 case Right(Some(jsValue)) => Ok(jsValue)
                 case Right(None)          =>
                   BadRequest(Json.obj(
-                    "message" -> s"Feature $pattern is not a legacy compatible feature"
+                    "message" ->
+                      s"Feature $pattern is not a legacy compatible feature"
                   ))
                 case Left(error) => error.toHttpResponse
               }

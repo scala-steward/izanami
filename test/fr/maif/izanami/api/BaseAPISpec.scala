@@ -220,7 +220,8 @@ class BaseAPISpec
   def clearWasmServer(): Future[Any] = {
     ws.url("http://localhost:5001/api/plugins")
       .withHttpHeaders(
-        "Authorization" -> "Basic YWRtaW4tYXBpLWFwaWtleS1pZDphZG1pbi1hcGktYXBpa2V5LXNlY3JldA=="
+        "Authorization" ->
+          "Basic YWRtaW4tYXBpLWFwaWtleS1pZDphZG1pbi1hcGktYXBpa2V5LXNlY3JldA=="
       )
       .get()
       .map(response => response.json \\ "pluginId")
@@ -326,17 +327,18 @@ object BaseAPISpec extends DefaultAwaitTimeout {
     izanamiInstance.stopServer.close()
     izanamiInstance = null
 
-    org.awaitility.Awaitility.await atMost (30, SECONDS) until (() => {
-      val res = Try {
-        val b = await(
-          ws.url("http://localhost:9000/api/_health")
-            .get()
-            .map(r => r.status != 200)
-        )
-        b
-      }.getOrElse(true)
-      res
-    })
+    org.awaitility.Awaitility.await atMost (30, SECONDS) until
+      (() => {
+        val res = Try {
+          val b = await(
+            ws.url("http://localhost:9000/api/_health")
+              .get()
+              .map(r => r.status != 200)
+          )
+          b
+        }.getOrElse(true)
+        res
+      })
   }
 
   def startContainers(): Unit = {
@@ -358,9 +360,10 @@ object BaseAPISpec extends DefaultAwaitTimeout {
       val maybeWasmManager =
         containers.getContainerByServiceName("wasm-manager")
 
-      org.awaitility.Awaitility.await atMost (30, SECONDS) until (() =>
-        java.lang.Boolean.valueOf(maybeWasmManager.get.isHealthy)
-      )
+      org.awaitility.Awaitility.await atMost (30, SECONDS) until
+        (() =>
+          java.lang.Boolean.valueOf(maybeWasmManager.get.isHealthy)
+        )
       BaseAPISpec.shouldCleanUpWasmServer = false
     } else {
       logger.info(
@@ -420,14 +423,15 @@ object BaseAPISpec extends DefaultAwaitTimeout {
 
     logger.info("Starting server")
     val runningServer = server.start(application)
-    org.awaitility.Awaitility.await atMost (30, SECONDS) until (() => {
-      val b = await(
-        ws.url("http://localhost:9000/api/_health")
-          .get()
-          .map(r => r.status == 200)
-      )
-      b
-    })
+    org.awaitility.Awaitility.await atMost (30, SECONDS) until
+      (() => {
+        val b = await(
+          ws.url("http://localhost:9000/api/_health")
+            .get()
+            .map(r => r.status == 200)
+        )
+        b
+      })
     logger.info("Server started")
 
     runningServer
@@ -1170,7 +1174,8 @@ object BaseAPISpec extends DefaultAwaitTimeout {
     val response = await(
       ws.url(s"${ADMIN_BASE_URL}/tenants/$tenant/_export")
         .addHttpHeaders(
-          "Authorization" -> s"Basic ${Base64.getEncoder.encodeToString(s"${user}:$secret".getBytes)}"
+          "Authorization" ->
+            s"Basic ${Base64.getEncoder.encodeToString(s"${user}:$secret".getBytes)}"
         )
         .post(
           Json.obj(
@@ -2179,10 +2184,11 @@ object BaseAPISpec extends DefaultAwaitTimeout {
       if (!tenants.contains(tenant)) {
         throw new RuntimeException("Tenant does not exist")
       }
-      val newProjects = tenants(tenant).projects + (project -> TestProjectRight(
-        name = project,
-        level = level
-      ))
+      val newProjects = tenants(tenant).projects +
+        (project -> TestProjectRight(
+          name = project,
+          level = level
+        ))
 
       copy(tenants + (tenant -> tenants(tenant).copy(projects = newProjects)))
     }
@@ -2321,12 +2327,14 @@ object BaseAPISpec extends DefaultAwaitTimeout {
   ) {
     def json: JsObject = {
       Json.obj(
-        "startTime" -> startTime
-          .atOffset(OffsetDateTime.now().getOffset)
-          .format(DateTimeFormatter.ISO_TIME),
-        "endTime" -> endTime
-          .atOffset(OffsetDateTime.now().getOffset)
-          .format(DateTimeFormatter.ISO_TIME)
+        "startTime" ->
+          startTime
+            .atOffset(OffsetDateTime.now().getOffset)
+            .format(DateTimeFormatter.ISO_TIME),
+        "endTime" ->
+          endTime
+            .atOffset(OffsetDateTime.now().getOffset)
+            .format(DateTimeFormatter.ISO_TIME)
       )
     }
   }
@@ -2648,10 +2656,12 @@ object BaseAPISpec extends DefaultAwaitTimeout {
         transformer: JsObject => JsObject
     ): RequestResult = {
       def transformGetResponse(json: JsObject): JsObject = {
-        val featureIds =
-          (json \ "features").as[JsArray].value.map(json => (json \ "id").get)
-        val projectIds =
-          (json \ "projects").as[JsArray].value.map(json => (json \ "id").get)
+        val featureIds = (json \ "features").as[JsArray].value.map(json =>
+          (json \ "id").get
+        )
+        val projectIds = (json \ "projects").as[JsArray].value.map(json =>
+          (json \ "id").get
+        )
 
         json ++ Json.obj(
           "features" -> JsArray(featureIds),
@@ -4772,8 +4782,9 @@ object BaseAPISpec extends DefaultAwaitTimeout {
                               TestSituationKey(
                                 name = (json \ "name").as[String],
                                 clientId = (json \ "clientId").as[String],
-                                clientSecret =
-                                  (json \ "clientSecret").as[String],
+                                clientSecret = (json \ "clientSecret").as[
+                                  String
+                                ],
                                 enabled = (json \ "enabled").as[Boolean]
                               )
                             })

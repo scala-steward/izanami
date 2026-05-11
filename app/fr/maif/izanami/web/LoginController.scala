@@ -478,8 +478,9 @@ class LoginController(
                 if (resp.status == 200) {
                   val body = Json.parse(resp.body)
                   val tokenUrl = (body \ "token_endpoint").asOpt[String];
-                  val authorizeUrl =
-                    (body \ "authorization_endpoint").asOpt[String];
+                  val authorizeUrl = (body \ "authorization_endpoint").asOpt[
+                    String
+                  ];
 
                   val scope = (body \ "scopes_supported")
                     .asOpt[Seq[String]]

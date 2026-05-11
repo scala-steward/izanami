@@ -180,9 +180,11 @@ class UsersAPISpec extends BaseAPISpec {
       (result.json.get \ "admin").as[Boolean] mustBe false
       (result.json.get \ "rights" \ "tenants" \ "my-tenant" \ "level")
         .as[String] mustBe "Read"
-      (result.json.get \ "rights" \ "tenants" \ "my-tenant" \ "projects" \ "my-project" \ "level")
+      (result.json.get \ "rights" \ "tenants" \ "my-tenant" \ "projects" \
+        "my-project" \ "level")
         .as[String] mustBe "Write"
-      (result.json.get \ "rights" \ "tenants" \ "my-tenant" \ "keys" \ "my-key" \ "level")
+      (result.json.get \ "rights" \ "tenants" \ "my-tenant" \ "keys" \
+        "my-key" \ "level")
         .as[String] mustBe "Admin"
     }
   }
@@ -219,14 +221,17 @@ class UsersAPISpec extends BaseAPISpec {
       (result.json.get \ "username").as[String] mustEqual "testu"
       (result.json.get \ "email").as[String] mustEqual "testu@foo.baz"
       (result.json.get \ "admin").as[Boolean] mustBe false
-      (result.json.get \ "rights" \ "tenants" \ "my-tenant2") mustBe a[
-        JsUndefined
-      ]
+      (result.json.get \ "rights" \ "tenants" \ "my-tenant2") mustBe
+        a[
+          JsUndefined
+        ]
       (result.json.get \ "rights" \ "tenants" \ "my-tenant" \ "level")
         .as[String] mustBe "Read"
-      (result.json.get \ "rights" \ "tenants" \ "my-tenant" \ "projects" \ "my-project" \ "level")
+      (result.json.get \ "rights" \ "tenants" \ "my-tenant" \ "projects" \
+        "my-project" \ "level")
         .as[String] mustBe "Write"
-      (result.json.get \ "rights" \ "tenants" \ "my-tenant" \ "keys" \ "my-key" \ "level")
+      (result.json.get \ "rights" \ "tenants" \ "my-tenant" \ "keys" \
+        "my-key" \ "level")
         .as[String] mustBe "Admin"
     }
   }
@@ -257,9 +262,11 @@ class UsersAPISpec extends BaseAPISpec {
       (result.json.get \ "admin").as[Boolean] mustBe false
       (result.json.get \ "rights" \ "tenants" \ "my-tenant" \ "level")
         .as[String] mustBe "Read"
-      (result.json.get \ "rights" \ "tenants" \ "my-tenant" \ "projects" \ "my-project" \ "level")
+      (result.json.get \ "rights" \ "tenants" \ "my-tenant" \ "projects" \
+        "my-project" \ "level")
         .as[String] mustBe "Write"
-      (result.json.get \ "rights" \ "tenants" \ "my-tenant" \ "keys" \ "my-key" \ "level")
+      (result.json.get \ "rights" \ "tenants" \ "my-tenant" \ "keys" \
+        "my-key" \ "level")
         .as[String] mustBe "Admin"
     }
   }
@@ -543,8 +550,9 @@ class UsersAPISpec extends BaseAPISpec {
 
       val result =
         situation.sendInvitation("foo@imaginaryemail.afezrfr", admin = false)
-      val token =
-        (result.json.get \ "invitationUrl").as[String].split("token=")(1)
+      val token = (result.json.get \ "invitationUrl").as[String].split(
+        "token="
+      )(1)
 
       val result2 =
         situation.sendInvitation("foo@imaginaryemail.afezrfr", admin = true)
@@ -566,8 +574,9 @@ class UsersAPISpec extends BaseAPISpec {
 
       val result =
         situation.sendInvitation("foo@imaginaryemail.afezrfr", admin = false)
-      val token =
-        (result.json.get \ "invitationUrl").as[String].split("token=")(1)
+      val token = (result.json.get \ "invitationUrl").as[String].split(
+        "token="
+      )(1)
 
       situation.loggedAs("baz", "foobarbar").deleteUser("bar")
 
@@ -1092,7 +1101,8 @@ class UsersAPISpec extends BaseAPISpec {
       (situation
         .fetchUser(user.username)
         .json
-        .get \ "rights" \ "tenants" \ "my-tenant" \ "projects" \ "project1" \ "level")
+        .get \ "rights" \ "tenants" \ "my-tenant" \ "projects" \ "project1" \
+        "level")
         .as[String] mustBe "Admin"
     }
 
@@ -1213,7 +1223,8 @@ class UsersAPISpec extends BaseAPISpec {
       (situation
         .fetchUser(user.username)
         .json
-        .get \ "rights" \ "tenants" \ "my-tenant" \ "projects" \ "project1" \ "level")
+        .get \ "rights" \ "tenants" \ "my-tenant" \ "projects" \ "project1" \
+        "level")
         .as[String] mustBe "Admin"
     }
 

@@ -59,8 +59,9 @@ class ApiKeyController(
                 case None => Future.successful(
                     Forbidden(
                       Json.obj(
-                        "message" -> s"${request.user} does not have right on one or more of these projects : ${key.projects
-                            .mkString(",")} or is not tenant admin (if admin key was required)"
+                        "message" ->
+                          s"${request.user} does not have right on one or more of these projects : ${key.projects
+                              .mkString(",")} or is not tenant admin (if admin key was required)"
                       )
                     )
                   )
@@ -120,7 +121,8 @@ class ApiKeyController(
                 eitherAuthorized.filterOrElse(
                   b => b,
                   Forbidden(Json.obj(
-                    "message" -> s"${request.user} does not have right on key projects"
+                    "message" ->
+                      s"${request.user} does not have right on key projects"
                   ))
                 )
               )

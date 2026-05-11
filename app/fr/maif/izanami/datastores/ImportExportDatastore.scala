@@ -48,7 +48,6 @@ import fr.maif.izanami.errors.ImportFailureError
 import fr.maif.izanami.errors.PostgresErrorMapper
 import play.api.Logger
 
-
 class ImportExportDatastore(val env: Env) extends Datastore {
   private val logger = Logger("izanami-import-export")
   private val extensionSchema: String = env.extensionsSchema
@@ -223,7 +222,8 @@ class ImportExportDatastore(val env: Env) extends Datastore {
                             tenant,
                             entries,
                             if (
-                              conflictStrategy.defaultStrategy == ImportController.Fail
+                              conflictStrategy.defaultStrategy ==
+                                ImportController.Fail
                             )
                               Some(conn)
                             else None
@@ -290,9 +290,11 @@ class ImportExportDatastore(val env: Env) extends Datastore {
                           val previousProjectNames
                               : Future[Map[ProjectId, String]] =
                             if (
-                              conflictStrategy.defaultStrategy == MergeOverwrite && entries
-                                .get(FeatureType)
-                                .exists(s => s.nonEmpty)
+                              conflictStrategy.defaultStrategy ==
+                                MergeOverwrite &&
+                                entries
+                                  .get(FeatureType)
+                                  .exists(s => s.nonEmpty)
                             ) {
                               env.postgresql
                                 .queryAll(
@@ -555,7 +557,8 @@ class ImportExportDatastore(val env: Env) extends Datastore {
     val conflictStrategyToUse =
       conflictStrategy.strategyFor(ConflictField.FeatureTags)
     if (
-      conflictStrategyToUse == MergeOverwrite || conflictStrategyToUse == Replace
+      conflictStrategyToUse == MergeOverwrite ||
+      conflictStrategyToUse == Replace
     ) {
 
       env.postgresql.queryRaw(
@@ -689,7 +692,7 @@ class ImportExportDatastore(val env: Env) extends Datastore {
           silentFor = e => {
             logger.debug("Import errors:", e)
             true
-          },
+          }
         ) { rows =>
           {
 

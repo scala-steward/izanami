@@ -909,12 +909,11 @@ class FeatureContextAPISpec extends BaseAPISpec {
           (v \ "name").get.as[String]
         ) must contain theSameElementsAs Seq("localchildofglobal", "subglobal")
 
-      val localchildofglobal =
-        (global \ "children").get
-          .as[JsArray]
-          .value
-          .find(v => (v \ "name").get.as[String] == "localchildofglobal")
-          .get
+      val localchildofglobal = (global \ "children").get
+        .as[JsArray]
+        .value
+        .find(v => (v \ "name").get.as[String] == "localchildofglobal")
+        .get
       (localchildofglobal \ "children").get
         .as[JsArray]
         .value
@@ -982,12 +981,11 @@ class FeatureContextAPISpec extends BaseAPISpec {
         json.find(obj => (obj \ "name").get.as[String] == "global").get
       (global \ "global").get.as[Boolean] mustBe true
 
-      val localchildofglobal =
-        (global \ "children").get
-          .as[JsArray]
-          .value
-          .find(v => (v \ "name").get.as[String] == "localchildofglobal")
-          .get
+      val localchildofglobal = (global \ "children").get
+        .as[JsArray]
+        .value
+        .find(v => (v \ "name").get.as[String] == "localchildofglobal")
+        .get
       (localchildofglobal \ "global").get.as[Boolean] mustBe false
 
       val localsubchild = (localchildofglobal \ "children").get
@@ -997,12 +995,11 @@ class FeatureContextAPISpec extends BaseAPISpec {
         .get
       (localsubchild \ "global").get.as[Boolean] mustBe false
 
-      val subglobal =
-        (global \ "children").get
-          .as[JsArray]
-          .value
-          .find(v => (v \ "name").get.as[String] == "subglobal")
-          .get
+      val subglobal = (global \ "children").get
+        .as[JsArray]
+        .value
+        .find(v => (v \ "name").get.as[String] == "subglobal")
+        .get
       (subglobal \ "global").get.as[Boolean] mustBe true
 
     }
@@ -1708,8 +1705,9 @@ class FeatureContextAPISpec extends BaseAPISpec {
         .get
         .as[JsObject]
       val prodCtx = (ctx \ "children" \ 0).as[JsObject]
-      val prodFeatureEnabled =
-        (prodCtx \ "overloads" \ 0 \ "enabled").as[Boolean]
+      val prodFeatureEnabled = (prodCtx \ "overloads" \ 0 \ "enabled").as[
+        Boolean
+      ]
 
       prodFeatureEnabled mustBe false
     }

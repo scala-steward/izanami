@@ -53,7 +53,8 @@ class UserController(
               if (conf.invitationMode == InvitationMode.Response) {
                 Created(
                   Json.obj(
-                    "invitationUrl" -> s"""${env.expositionUrl}/invitation?token=${token}"""
+                    "invitationUrl" ->
+                      s"""${env.expositionUrl}/invitation?token=${token}"""
                   )
                 ).future
               } else if (conf.invitationMode == InvitationMode.Mail) {
@@ -140,7 +141,8 @@ class UserController(
       if (!request.user.username.equalsIgnoreCase(user)) {
         Forbidden(
           Json.obj(
-            "message" -> "Modification of other users information is not allowed"
+            "message" ->
+              "Modification of other users information is not allowed"
           )
         ).future
       } else {

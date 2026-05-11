@@ -322,9 +322,8 @@ class ImportController(
         )
 
         if (!errors.isEmpty) {
-          Left(ImportFailureError(Map("Unknown" -> errors.toSeq.map(
-            (json, error) => (error, json)
-          ))))
+          Left(ImportFailureError(Map("Unknown" ->
+            errors.toSeq.map((json, error) => (error, json)))))
         } else {
           Right(correctRows
             .toSeq
@@ -483,10 +482,12 @@ class ImportController(
         } else if (!isFirstGlobal && isSecondGlobal) {
           false
         } else {
-          val firstParent =
-            (json1 \ "parent").asOpt[String].filter(s => s != null)
-          val secondParent =
-            (json2 \ "parent").asOpt[String].filter(s => s != null)
+          val firstParent = (json1 \ "parent").asOpt[String].filter(s =>
+            s != null
+          )
+          val secondParent = (json2 \ "parent").asOpt[String].filter(s =>
+            s != null
+          )
 
           (firstParent, secondParent) match {
             case (None, None)             => true
@@ -517,9 +518,10 @@ class ImportController(
       val newCtx = oldParentToNewParent(oldCtx)
 
       val res: JsObject =
-        json - "local_context" - "global_context" + ("context" -> JsString(
-          newCtx
-        ))
+        json - "local_context" - "global_context" +
+          ("context" -> JsString(
+            newCtx
+          ))
       res
     })
   }

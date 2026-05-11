@@ -160,8 +160,9 @@ class FeaturesDatastore(val env: Env) extends Datastore {
                               .map(enabled => {
                                 val maybeConditionsJson =
                                   (json \ "conditions").asOpt[JsArray]
-                                val maybeScriptName =
-                                  (json \ "config").asOpt[String]
+                                val maybeScriptName = (json \ "config").asOpt[
+                                  String
+                                ]
                                 val r
                                     : (FeatureContextPath, LightWeightFeature) =
                                   (
@@ -330,8 +331,7 @@ class FeaturesDatastore(val env: Env) extends Datastore {
                           yield {
                             val maybeConditionsJson =
                               (json \ "conditions").asOpt[JsArray]
-                            val maybeScriptName =
-                              (json \ "config").asOpt[String]
+                            val maybeScriptName = (json \ "config").asOpt[String]
                             val r: (FeatureContextPath, LightWeightFeature) = (
                               FeatureContextPath.fromDBString(context),
                               maybeConditionsJson
@@ -805,7 +805,8 @@ class FeaturesDatastore(val env: Env) extends Datastore {
       Future.successful(Left(InvalidApiKey))
     } else {
       val needTags =
-        request.allTagsIn.nonEmpty || request.noTagIn.nonEmpty || request.oneTagIn.nonEmpty;
+        request.allTagsIn.nonEmpty || request.noTagIn.nonEmpty ||
+          request.oneTagIn.nonEmpty;
       val needContexts = request.context.nonEmpty || conditions
 
       val params = if (needContexts && !conditions) {
@@ -901,12 +902,14 @@ class FeaturesDatastore(val env: Env) extends Datastore {
                   val tags = f.tags.map(t => UUID.fromString(t))
                   val specificFeatureRequest = request.features.contains(f.id)
                   val allTagsInOk = request.allTagsIn.subsetOf(tags)
-                  val oneTagInOk = request.oneTagIn.isEmpty || request.oneTagIn
-                    .exists(u => tags.contains(u))
+                  val oneTagInOk = request.oneTagIn.isEmpty ||
+                    request.oneTagIn
+                      .exists(u => tags.contains(u))
                   val noTagsInOk =
                     !request.noTagIn.exists(u => tags.contains(u))
 
-                  specificFeatureRequest || (allTagsInOk && oneTagInOk && noTagsInOk)
+                  specificFeatureRequest ||
+                  (allTagsInOk && oneTagInOk && noTagsInOk)
                 } else {
                   true
                 }
@@ -1135,18 +1138,21 @@ class FeaturesDatastore(val env: Env) extends Datastore {
                       .toSeq
                   })
                   .filter(f =>
-                    request.features.contains(f.id) || request.allTagsIn
-                      .subsetOf(f.tags.map(UUID.fromString))
+                    request.features.contains(f.id) ||
+                      request.allTagsIn
+                        .subsetOf(f.tags.map(UUID.fromString))
                   )
                   .filter(f =>
                     request.features.contains(
                       f.id
-                    ) || request.oneTagIn.isEmpty || request.oneTagIn
-                      .exists(u => f.tags.contains(u.toString))
+                    ) || request.oneTagIn.isEmpty ||
+                      request.oneTagIn
+                        .exists(u => f.tags.contains(u.toString))
                   )
                   .filter(f =>
-                    request.features.contains(f.id) || !request.noTagIn
-                      .exists(u => f.tags.contains(u.toString))
+                    request.features.contains(f.id) ||
+                      !request.noTagIn
+                        .exists(u => f.tags.contains(u.toString))
                   )
                   .toSeq
               )
@@ -1769,7 +1775,8 @@ class FeaturesDatastore(val env: Env) extends Datastore {
 
       val (ids, scripts) = wasmConfigs
         .filter(w =>
-          w.source.kind != WasmSourceKind.Local && w.source.kind != WasmSourceKind.Unknown
+          w.source.kind != WasmSourceKind.Local &&
+            w.source.kind != WasmSourceKind.Unknown
         )
         .map(w => (w.name, Json.toJson(w)(WasmConfig.format).vertxJsValue))
         .unzip

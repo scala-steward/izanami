@@ -491,7 +491,10 @@ class Postgresql(env: Env) {
         }
         conn
           .map(conn => lambda(conn).scala)
-          .getOrElse(executeInTransaction(conn => lambda(conn).scala, silentFor = silentFor))
+          .getOrElse(executeInTransaction(
+            conn => lambda(conn).scala,
+            silentFor = silentFor
+          ))
       case false =>
         conn
           .map(c =>

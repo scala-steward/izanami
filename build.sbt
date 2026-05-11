@@ -59,12 +59,14 @@ semanticdbVersion := scalafixSemanticdb.revision
 excludeDependencies ++= Seq(
   ExclusionRule("org.reactivecouchbase.json", "json-lib")
 )
-sonatypeRepository := "https://ossrh-staging-api.central.sonatype.com/service/local/"
+sonatypeRepository :=
+  "https://ossrh-staging-api.central.sonatype.com/service/local/"
 sonatypeCredentialHost := sonatypeCentralHost
 
 libraryDependencies += guice
 libraryDependencies += ws
-libraryDependencies += "com.softwaremill.macwire" %% "macros" % "2.6.7" % "provided"
+libraryDependencies +=
+  "com.softwaremill.macwire" %% "macros" % "2.6.7" % "provided"
 
 libraryDependencies += "com.zaxxer" % "HikariCP" % "5.1.0"
 libraryDependencies += "io.vertx" % "vertx-pg-client" % "4.5.12"
@@ -72,7 +74,9 @@ libraryDependencies += "com.ongres.scram" % "common" % "2.1"
 libraryDependencies += "com.ongres.scram" % "client" % "2.1"
 libraryDependencies += "org.flywaydb" % "flyway-database-postgresql" % "12.3.0"
 libraryDependencies += "org.postgresql" % "postgresql" % "42.7.2"
-libraryDependencies += "com.github.jwt-scala" %% "jwt-play-json" % "9.4.5" excludeAll (excludesJackson: _*)
+libraryDependencies +=
+  "com.github.jwt-scala" %% "jwt-play-json" % "9.4.5" excludeAll
+    (excludesJackson: _*)
 libraryDependencies += "org.mindrot" % "jbcrypt" % "0.4"
 libraryDependencies += "com.mailjet" % "mailjet-client" % "5.2.5"
 libraryDependencies += "javax.mail" % "javax.mail-api" % "1.6.2"
@@ -80,28 +84,44 @@ libraryDependencies += "com.sun.mail" % "javax.mail" % "1.6.2"
 libraryDependencies += "com.github.blemale" %% "scaffeine" % "5.2.1"
 libraryDependencies += "net.java.dev.jna" % "jna" % "5.14.0"
 libraryDependencies += "commons-codec" % "commons-codec" % "1.16.0"
-libraryDependencies += "io.dropwizard.metrics" % "metrics-json" % "4.2.23" excludeAll (excludesJackson: _*)
+libraryDependencies +=
+  "io.dropwizard.metrics" % "metrics-json" % "4.2.23" excludeAll
+    (excludesJackson: _*)
 libraryDependencies += "org.mozilla" % "rhino" % "1.7.14"
-libraryDependencies += "com.squareup.okhttp3" % "okhttp" % "4.12.0" excludeAll (excludesJackson: _*)
+libraryDependencies +=
+  "com.squareup.okhttp3" % "okhttp" % "4.12.0" excludeAll (excludesJackson: _*)
 libraryDependencies += "fr.maif" %% "wasm4s" % "5.0.3" classifier "bundle"
-libraryDependencies += "com.auth0" % "java-jwt" % "4.4.0" excludeAll (excludesJackson: _*) // needed by wasm4s
+libraryDependencies += "com.auth0" % "java-jwt" % "4.4.0" excludeAll
+  (excludesJackson: _*) // needed by wasm4s
 libraryDependencies += "com.github.jknack" % "handlebars" % "4.4.0"
-libraryDependencies += "com.github.jknack" % "handlebars-jackson" % "4.4.0" excludeAll (excludesJackson: _*)
-libraryDependencies += "net.logstash.logback" % "logstash-logback-encoder" % "8.0" excludeAll (excludesJackson: _*)
+libraryDependencies +=
+  "com.github.jknack" % "handlebars-jackson" % "4.4.0" excludeAll
+    (excludesJackson: _*)
+libraryDependencies +=
+  "net.logstash.logback" % "logstash-logback-encoder" % "8.0" excludeAll
+    (excludesJackson: _*)
 libraryDependencies += "org.apache.pekko" %% "pekko-slf4j" % "1.1.5"
-libraryDependencies += "org.apache.pekko" %% "pekko-serialization-jackson" % "1.1.5"
+libraryDependencies +=
+  "org.apache.pekko" %% "pekko-serialization-jackson" % "1.1.5"
 libraryDependencies += "org.apache.pekko" %% "pekko-actor-typed" % "1.1.5"
 libraryDependencies += "org.apache.pekko" %% "pekko-protobuf-v3" % "1.1.5"
 libraryDependencies += "org.apache.pekko" %% "pekko-stream" % "1.1.5"
 libraryDependencies += "com.github.pureconfig" %% "pureconfig-core" % "0.17.9"
-libraryDependencies += "com.github.pureconfig" %% "pureconfig-generic-base" % "0.17.9"
-libraryDependencies += "com.github.pureconfig" %% "pureconfig-generic-scala3" % "0.17.9"
+libraryDependencies +=
+  "com.github.pureconfig" %% "pureconfig-generic-base" % "0.17.9"
+libraryDependencies +=
+  "com.github.pureconfig" %% "pureconfig-generic-scala3" % "0.17.9"
 
-libraryDependencies += "org.scalatestplus.play" %% "scalatestplus-play" % "7.0.2" % Test
-libraryDependencies += "org.scalatest" %% "scalatest-flatspec" % "3.2.12" % "test"
-libraryDependencies += "com.github.tomakehurst" % "wiremock-jre8" % "2.34.0" % Test
-libraryDependencies += "com.fasterxml.jackson.core" % "jackson-databind" % "2.13.4.2" % Test
-libraryDependencies += "com.fasterxml.jackson.module" %% "jackson-module-scala" % "2.13.4" % Test
+libraryDependencies +=
+  "org.scalatestplus.play" %% "scalatestplus-play" % "7.0.2" % Test
+libraryDependencies +=
+  "org.scalatest" %% "scalatest-flatspec" % "3.2.12" % "test"
+libraryDependencies +=
+  "com.github.tomakehurst" % "wiremock-jre8" % "2.34.0" % Test
+libraryDependencies +=
+  "com.fasterxml.jackson.core" % "jackson-databind" % "2.13.4.2" % Test
+libraryDependencies +=
+  "com.fasterxml.jackson.module" %% "jackson-module-scala" % "2.13.4" % Test
 libraryDependencies += jdbc % "test"
 libraryDependencies += "org.testcontainers" % "testcontainers" % "1.20.6" % Test
 libraryDependencies += ("fr.maif" %% "izanami-client" % "1.11.5" % Test)
@@ -111,7 +131,8 @@ libraryDependencies += ("fr.maif" %% "izanami-client" % "1.11.5" % Test)
   .cross(CrossVersion.for3Use2_13)
 libraryDependencies += "org.awaitility" % "awaitility-scala" % "4.2.0" % Test
 libraryDependencies += "com.github.mifmif" % "generex" % "1.0.1" % Test
-libraryDependencies += "org.apache.pekko" %% "pekko-connectors-sse" % "1.2.0" % Test
+libraryDependencies +=
+  "org.apache.pekko" %% "pekko-connectors-sse" % "1.2.0" % Test
 
 routesImport += "fr.maif.izanami.models.CustomBinders._"
 

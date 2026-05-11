@@ -229,8 +229,10 @@ class RightServiceTest extends AnyWordSpec with Matchers {
       secretComplianceResult.webhooks("wh").before mustBe Admin
       secretComplianceResult.webhooks("wh").after mustBe Read
 
-      secretComplianceResult.defaultProjectRight.get.before mustBe ProjectRightLevel.Update
-      secretComplianceResult.defaultProjectRight.get.after mustBe ProjectRightLevel.Read
+      secretComplianceResult.defaultProjectRight.get.before mustBe
+        ProjectRightLevel.Update
+      secretComplianceResult.defaultProjectRight.get.after mustBe
+        ProjectRightLevel.Read
 
       secretComplianceResult.defaultKeyRight.get.before mustBe Write
       secretComplianceResult.defaultKeyRight.get.after mustBe Read

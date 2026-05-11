@@ -72,9 +72,8 @@ class EventController(
       val resultSource = source.source
         .filter {
           case f: FeatureEvent =>
-            f.id.matches(regexpPattern) && (key.admin || key.projects.exists(
-              ap => ap.name == f.project
-            ))
+            f.id.matches(regexpPattern) &&
+            (key.admin || key.projects.exists(ap => ap.name == f.project))
           case _ => false
         }
         .map(e => processForLegacyEndpoint(e.asInstanceOf[FeatureEvent]))

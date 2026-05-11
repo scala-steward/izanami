@@ -40,7 +40,8 @@ object IdGenerator {
         throw new RuntimeException("Clock is running backward. Sorry :-(")
       lastTimestamp.set(timestamp)
       counter.compareAndSet(4095, -1L)
-      ((timestamp - minus) << 22L) | (generatorId << 10L) | counter.incrementAndGet()
+      ((timestamp - minus) << 22L) | (generatorId << 10L) |
+        counter.incrementAndGet()
     }
 
   def nextIdStr(generatorId: Long): String =

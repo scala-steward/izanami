@@ -105,7 +105,8 @@ class FeatureContextController(
                 case Right(true) if maybeProtected.exists(p => !p) =>
                   BadRequest(
                     Json.obj(
-                      "message" -> "Can't create an unprotected context as child of protected context"
+                      "message" ->
+                        "Can't create an unprotected context as child of protected context"
                     )
                   ).future
                 case Right(parentProtected) => {
@@ -168,7 +169,8 @@ class FeatureContextController(
             .flatMap(contexts => {
               if (
                 contexts
-                  .exists(ctx => ctx.isProtected) && !request.user
+                  .exists(ctx => ctx.isProtected) &&
+                !request.user
                   .hasRightForProject(project, ProjectRightLevel.Admin)
               ) {
                 val protectedSubContexts =
@@ -177,8 +179,9 @@ class FeatureContextController(
                     .map(c => c.fullyQualifiedName.toUserPath)
                 Forbidden(
                   Json.obj(
-                    "message" -> s"Context can't be deleted since it has following protected subcontexts : ${protectedSubContexts
-                        .mkString(", ")}"
+                    "message" ->
+                      s"Context can't be deleted since it has following protected subcontexts : ${protectedSubContexts
+                          .mkString(", ")}"
                   )
                 ).future
               } else {
@@ -290,7 +293,8 @@ class FeatureContextController(
               case Right(true) if maybeProtected.exists(p => !p) =>
                 BadRequest(
                   Json.obj(
-                    "message" -> "Can't create an unprotected context as child of protected context"
+                    "message" ->
+                      "Can't create an unprotected context as child of protected context"
                   )
                 ).future
               case Right(parentProtected) => {
@@ -377,7 +381,8 @@ class FeatureContextController(
             .findChildrenForGlobalContext(tenant, context)
             .flatMap(ctxs => {
               if (
-                ctxs.exists(c => c.isProtected) && !request.user
+                ctxs.exists(c => c.isProtected) &&
+                !request.user
                   .hasRightForTenant(RightLevel.Admin)
               ) {
                 val protectedSubContexts = ctxs
@@ -385,8 +390,9 @@ class FeatureContextController(
                   .map(c => c.fullyQualifiedName.toUserPath)
                 Forbidden(
                   Json.obj(
-                    "message" -> s"Context can't be deleted since it has following protecting subcontexts : ${protectedSubContexts
-                        .mkString(", ")}"
+                    "message" ->
+                      s"Context can't be deleted since it has following protecting subcontexts : ${protectedSubContexts
+                          .mkString(", ")}"
                   )
                 ).future
               } else {

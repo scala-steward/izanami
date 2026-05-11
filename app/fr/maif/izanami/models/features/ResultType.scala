@@ -114,8 +114,9 @@ object ValuedResultDescriptor {
                   value <- (json \ "value")
                     .asOpt[BigDecimal]
                     .filter(d =>
-                      d.compare(maxNumberValue) <= 0 && d
-                        .compare(minNumberValue) >= 0
+                      d.compare(maxNumberValue) <= 0 &&
+                        d
+                          .compare(minNumberValue) >= 0
                     )
                 )
                 yield {

@@ -52,12 +52,16 @@ object PostgresErrorMapper {
     // Overloads
     "feature_contexts_strategies_pkey" -> FeatureOverloadIsAlreadyDefined,
     "feature_context_type_xor" -> OverloadMustHaveConditionOrScript,
-    "feature_contexts_strategies_result_type_value_check" -> OverloadIncompatibleResultTypeAndValue,
-    "feature_contexts_strategies_value_script_config" -> OverloadIncompatibleResultTypeAndValue,
+    "feature_contexts_strategies_result_type_value_check" ->
+      OverloadIncompatibleResultTypeAndValue,
+    "feature_contexts_strategies_value_script_config" ->
+      OverloadIncompatibleResultTypeAndValue,
     "feature_contexts_strategiesnamesize" -> ValueIsTooLong,
-    "feature_contexts_strategies_feature_project_fkey" -> OverloadProjectResultTypeMustMatchFeature,
+    "feature_contexts_strategies_feature_project_fkey" ->
+      OverloadProjectResultTypeMustMatchFeature,
     "feature_contexts_strategies_project_fkey" -> OverloadProjectDoesNotExist,
-    "feature_contexts_strategies_script_config_fkey" -> OverloadScriptDoesNotExist,
+    "feature_contexts_strategies_script_config_fkey" ->
+      OverloadScriptDoesNotExist,
     "strategy_context" -> OverloadContextDoesNotExist,
     // Scripts
     "wasm_script_configurationsnamesize" -> WasmScriptNameTooLong,

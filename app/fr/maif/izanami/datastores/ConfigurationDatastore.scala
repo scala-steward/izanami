@@ -121,11 +121,12 @@ class ConfigurationDatastore(val env: Env) extends Datastore {
                 val webhookToDelete = completeRights
                   .flatMap(_.tenants(t).webhooks.keySet.diff(existingWebhooks))
                   .toSet
-                map + (t -> TenantItemsToDelete(
-                  projects = projectToDelete,
-                  keys = keyToDelete,
-                  webhooks = webhookToDelete
-                ))
+                map +
+                  (t -> TenantItemsToDelete(
+                    projects = projectToDelete,
+                    keys = keyToDelete,
+                    webhooks = webhookToDelete
+                  ))
               }).mapToFEither
             })
           })
@@ -353,16 +354,18 @@ class ConfigurationDatastore(val env: Env) extends Datastore {
                 .obj(
                   "url" -> configuration.url.get,
                   "apiKey" -> configuration.apiKey,
-                  "region" -> MailGunRegion.mailGunRegionWrites
-                    .writes(configuration.region)
+                  "region" ->
+                    MailGunRegion.mailGunRegionWrites
+                      .writes(configuration.region)
                 )
                 .toString
             case MailGunMailProvider(configuration) =>
               Json
                 .obj(
                   "apiKey" -> configuration.apiKey,
-                  "region" -> MailGunRegion.mailGunRegionWrites
-                    .writes(configuration.region)
+                  "region" ->
+                    MailGunRegion.mailGunRegionWrites
+                      .writes(configuration.region)
                 )
                 .toString
             case SMTPMailProvider(configuration) =>

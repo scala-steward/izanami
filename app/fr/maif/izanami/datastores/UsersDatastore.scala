@@ -1144,7 +1144,8 @@ class UsersDatastore(val env: Env) extends Datastore {
                 ProjectRightLevel
                   .superiorOrEqualLevels(requestedRight.rightLevel)
                   .contains(actualRight.level)
-              }) || defaultProjectRight
+              }) ||
+              defaultProjectRight
                 .exists(dpr =>
                   ProjectRightLevel
                     .superiorOrEqualLevels(requestedRight.rightLevel)
@@ -1162,7 +1163,8 @@ class UsersDatastore(val env: Env) extends Datastore {
                 RightLevel
                   .superiorOrEqualLevels(requestedRight.rightLevel)
                   .contains(actualRight.level)
-              }) || defaultKeyRight
+              }) ||
+              defaultKeyRight
                 .exists(dpr =>
                   RightLevel
                     .superiorOrEqualLevels(requestedRight.rightLevel)
@@ -1184,7 +1186,8 @@ class UsersDatastore(val env: Env) extends Datastore {
                 RightLevel
                   .superiorOrEqualLevels(requestedRight.rightLevel)
                   .contains(actualRight.level)
-              }) || defaultWebhookRight
+              }) ||
+              defaultWebhookRight
                 .exists(dpr =>
                   RightLevel
                     .superiorOrEqualLevels(requestedRight.rightLevel)
@@ -1200,7 +1203,8 @@ class UsersDatastore(val env: Env) extends Datastore {
                 .map(tLevel => {
                   actualTenantRight.exists(extractedLevel =>
                     superiorOrEqualLevels(tLevel).contains(extractedLevel)
-                  ) && hasRightForProjects && hasRightForKeys && hasRightForWebhooks
+                  ) && hasRightForProjects && hasRightForKeys &&
+                  hasRightForWebhooks
                 })
                 .getOrElse(
                   hasRightForProjects && hasRightForKeys && hasRightForWebhooks

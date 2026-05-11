@@ -182,10 +182,12 @@ object WasmConfig {
                 WasmConfig(
                   name = name,
                   source = source,
-                  memoryPages =
-                    (json \ "memoryPages").asOpt[Int].getOrElse(100),
-                  functionName =
-                    (json \ "functionName").asOpt[String].filter(_.nonEmpty),
+                  memoryPages = (json \ "memoryPages").asOpt[Int].getOrElse(
+                    100
+                  ),
+                  functionName = (json \ "functionName").asOpt[String].filter(
+                    _.nonEmpty
+                  ),
                   config = (json \ "config").asOpt[Map[
                     String,
                     String
@@ -245,11 +247,12 @@ object WasmUtils {
       ec: ExecutionContext,
       env: Env
   ): Future[Either[IzanamiError, JsValue]] = {
-    val context = (requestContext.wasmJson.as[JsObject] ++ Json.obj(
-      "id" -> requestContext.user,
-      "context" -> requestContext.data,
-      "executionContext" -> requestContext.context.elements
-    )).stringify
+    val context =
+      (requestContext.wasmJson.as[JsObject] ++ Json.obj(
+        "id" -> requestContext.user,
+        "context" -> requestContext.data,
+        "executionContext" -> requestContext.context.elements
+      )).stringify
     env.wasmIntegration.withPooledVm(config) { vm =>
       if (config.opa) {
         vm.callOpa("execute", context).map {

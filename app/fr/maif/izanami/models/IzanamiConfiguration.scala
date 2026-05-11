@@ -109,9 +109,10 @@ object OAuth2Configuration {
         "callbackUrl" -> o.callbackUrl
       )
       .applyOnWithOpt(o.userRightsByRoles)((json, rightByRoles) =>
-        json + ("userRightsByRoles" -> Json.toJson(rightByRoles)(
-          Writes.map(CompleteRightsWithMaxRights.writes)
-        ))
+        json +
+          ("userRightsByRoles" -> Json.toJson(rightByRoles)(
+            Writes.map(CompleteRightsWithMaxRights.writes)
+          ))
       )
       .applyOnWithOpt(o.roleClaim)((json, roleClaim) =>
         json + ("roleClaim" -> Json.toJson(roleClaim))
@@ -135,11 +136,10 @@ object OAuth2Configuration {
           method <- (json \ "method").asOpt[OAuth2Method](OAuth2MethodReads)
         ) yield {
 
-          val userRightsByRoles =
-            (json \ "userRightsByRoles")
-              .asOpt[Map[String, CompleteRightsWithMaxRights]](
-                Reads.map(CompleteRightsWithMaxRights.reads)
-              )
+          val userRightsByRoles = (json \ "userRightsByRoles")
+            .asOpt[Map[String, CompleteRightsWithMaxRights]](
+              Reads.map(CompleteRightsWithMaxRights.reads)
+            )
           OAuth2Configuration(
             method = method,
             enabled = enabled,
@@ -154,8 +154,9 @@ object OAuth2Configuration {
             callbackUrl = callbackUrl,
             userRightsByRoles = userRightsByRoles,
             roleClaim = (json \ "roleClaim").asOpt[String],
-            roleRightMode =
-              (json \ "roleRightMode").asOpt[RoleRightMode](RoleRightMode.reads)
+            roleRightMode = (json \ "roleRightMode").asOpt[RoleRightMode](
+              RoleRightMode.reads
+            )
           )
         }
 
@@ -414,13 +415,15 @@ object IzanamiConfiguration {
     case m: MailJetMailProvider =>
       Json.obj(
         "mailer" -> MailerType.MailJet.toString
-      ) ++ mailJetConfigurationWrites
-        .writes(m.configuration)
-        .as[JsObject]
+      ) ++
+        mailJetConfigurationWrites
+          .writes(m.configuration)
+          .as[JsObject]
     case m: SMTPMailProvider =>
-      Json.obj("mailer" -> MailerType.SMTP.toString) ++ SMTPConfigurationWrites
-        .writes(m.configuration)
-        .as[JsObject]
+      Json.obj("mailer" -> MailerType.SMTP.toString) ++
+        SMTPConfigurationWrites
+          .writes(m.configuration)
+          .as[JsObject]
   }
 
   val mailConfigurationWriteForDisplay: Writes[MailProviderConfiguration] = {
@@ -431,21 +434,24 @@ object IzanamiConfiguration {
       Json
         .obj(
           "mailer" -> MailerType.MailGun.toString
-        ) ++ mailGunConfigurationWriteForDisplay
-        .writes(m.configuration)
-        .as[JsObject]
+        ) ++
+        mailGunConfigurationWriteForDisplay
+          .writes(m.configuration)
+          .as[JsObject]
     case m: MailJetMailProvider =>
       Json.obj(
         "mailer" -> MailerType.MailJet.toString
-      ) ++ mailJetConfigurationWriteForDisplay
-        .writes(m.configuration)
-        .as[JsObject]
+      ) ++
+        mailJetConfigurationWriteForDisplay
+          .writes(m.configuration)
+          .as[JsObject]
     case m: SMTPMailProvider =>
       Json.obj(
         "mailer" -> MailerType.SMTP.toString
-      ) ++ SMTPConfigurationWriteForDisplay
-        .writes(m.configuration)
-        .as[JsObject]
+      ) ++
+        SMTPConfigurationWriteForDisplay
+          .writes(m.configuration)
+          .as[JsObject]
   }
 
   val inputFullConfigurationReads: Reads[FullIzanamiConfiguration] = json => {

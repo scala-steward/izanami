@@ -89,8 +89,9 @@ class FeatureService(env: Env) {
       case f: CompleteWasmFeature if !isWasmAllowed =>
         FutureEither.failure(WasmFeatureNotAllowed)
       case f: AbstractFeature
-          if env.typedConfiguration.feature.forceLegacy && !f
-            .isInstanceOf[SingleConditionFeature] =>
+          if env.typedConfiguration.feature.forceLegacy &&
+            !f
+              .isInstanceOf[SingleConditionFeature] =>
         FutureEither.failure(ModernFeatureNotAllowed)
       case f: CompleteWasmFeature
           if f.resultType != BooleanResult && f.wasmConfig.opa =>
@@ -288,7 +289,8 @@ class FeatureService(env: Env) {
         updatedContext = contextPath
       );
       _ <- if (
-        impactedProtectedContexts.nonEmpty && !preserveProtectedContexts && !user
+        impactedProtectedContexts.nonEmpty && !preserveProtectedContexts &&
+        !user
           .hasRightForProject(
             project = project,
             level = ProjectRightLevel.Admin
@@ -379,8 +381,9 @@ class FeatureService(env: Env) {
             Right(c)
           case c: GlobalContext => Left(NotEnoughRights)
           case c: LocalContext
-              if c.isProtected && user
-                .hasRightForProject(c.project, ProjectRightLevel.Admin) =>
+              if c.isProtected &&
+                user
+                  .hasRightForProject(c.project, ProjectRightLevel.Admin) =>
             Right(c)
           case c: LocalContext if c.isProtected =>
             Left(NoProtectedContextAccess(contextPath.toUserPath))
@@ -522,8 +525,9 @@ class FeatureService(env: Env) {
               .hasRightForProject(
                 request.feature.project,
                 Write
-              ) || !request.user
-              .hasRightForProject(oldFeature.project, Write))
+              ) ||
+              !request.user
+                .hasRightForProject(oldFeature.project, Write))
           ) {
             FutureEither.failure(
               NotEnoughRights
@@ -533,7 +537,8 @@ class FeatureService(env: Env) {
           };
           _ <- if (
             oldFeature.baseFeature
-              .isInstanceOf[SingleConditionFeature] && !request.feature
+              .isInstanceOf[SingleConditionFeature] &&
+            !request.feature
               .isInstanceOf[
                 SingleConditionFeature
               ] && env.typedConfiguration.feature.forceLegacy
@@ -590,7 +595,9 @@ class FeatureService(env: Env) {
               request.maybeContext.getOrElse(FeatureContextPath(Seq()))
           );
           _ <- if (
-            request.strategy.resultType != oldFeature.baseFeature.resultType && protectedContexts.nonEmpty && !request.user
+            request.strategy.resultType != oldFeature.baseFeature.resultType &&
+            protectedContexts.nonEmpty &&
+            !request.user
               .hasRightForProject(request.project, Admin)
           ) {
             FutureEither.failure(
@@ -608,7 +615,8 @@ class FeatureService(env: Env) {
             impactedRootProtectedContexts = protectedContextToUpdate
           );
           f <- if (
-            request.preserveProtectedContexts && protectedContextToUpdate.nonEmpty
+            request.preserveProtectedContexts &&
+            protectedContextToUpdate.nonEmpty
           ) {
             for (
               oldStrategy <- oldFeature
@@ -817,7 +825,8 @@ class FeatureService(env: Env) {
           ) =>
         FutureEither.success(())
       case (f, _, _)
-          if !f.preserveProtectedContexts && impactedRootProtectedContexts.nonEmpty => {
+          if !f.preserveProtectedContexts &&
+            impactedRootProtectedContexts.nonEmpty => {
         FutureEither.failure(
           NoProtectedContextAccess(
             impactedRootProtectedContexts
@@ -910,9 +919,10 @@ object FeatureService {
 
         baseJson.applyOnWithOpt(maybeValue)((json, v) =>
           json + ("value" -> v)
-        ) + ("conditions" -> Json.toJson(
-          conditions
-        )(Writes.seq(ActivationCondition.activationConditionWrite)))
+        ) +
+          ("conditions" -> Json.toJson(
+            conditions
+          )(Writes.seq(ActivationCondition.activationConditionWrite)))
       }
     }
   }

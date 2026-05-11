@@ -805,9 +805,10 @@ class ZShouldRunLast_V1CompatibilityTest extends BaseAPISpec {
 
       val featureClient =
         client.featureClient(Strategy.FetchStrategy(errorStrategy = Crash))
-      val thrown = the[IzanamiException] thrownBy featureClient
-        .checkFeature("project:foo:default-feature")
-        .get()
+      val thrown = the[IzanamiException] thrownBy
+        featureClient
+          .checkFeature("project:foo:default-feature")
+          .get()
       thrown.getMessage must include("403")
     }
 
@@ -977,10 +978,11 @@ class ZShouldRunLast_V1CompatibilityTest extends BaseAPISpec {
         featureClient.checkFeature("project:foo:default-feature").get() == false
       }
 
-      val feature = (situation.fetchProject(
-        "tenant",
-        "project"
-      ).json.get \ "features" \ 0).as[JsObject]
+      val feature =
+        (situation.fetchProject(
+          "tenant",
+          "project"
+        ).json.get \ "features" \ 0).as[JsObject]
       val updatedFeature = feature + ("enabled" -> JsTrue)
       situation.updateFeature(
         "tenant",
@@ -1200,13 +1202,14 @@ class ZShouldRunLast_V1CompatibilityTest extends BaseAPISpec {
         featureClient.checkFeature("project:hour-range-feature").get() == true
       }
 
-      val feature = (situation.fetchProject(
-        "tenant",
-        "project"
-      ).json.get \ "features" \ 0).as[JsObject]
+      val feature =
+        (situation.fetchProject(
+          "tenant",
+          "project"
+        ).json.get \ "features" \ 0).as[JsObject]
 
-      var newCondition =
-        (feature \ "conditions").as[JsObject] ++ play.api.libs.json.Json.obj(
+      var newCondition = (feature \ "conditions").as[JsObject] ++
+        play.api.libs.json.Json.obj(
           "startTime" -> s"23:59"
         )
       var updatedFeature = feature + ("conditions" -> newCondition)
@@ -1220,8 +1223,8 @@ class ZShouldRunLast_V1CompatibilityTest extends BaseAPISpec {
         featureClient.checkFeature("project:hour-range-feature").get() == false
       }
 
-      newCondition =
-        (feature \ "conditions").as[JsObject] ++ play.api.libs.json.Json.obj(
+      newCondition = (feature \ "conditions").as[JsObject] ++
+        play.api.libs.json.Json.obj(
           "startTime" -> s"00:00"
         )
       updatedFeature = feature + ("conditions" -> newCondition)
@@ -1280,13 +1283,14 @@ class ZShouldRunLast_V1CompatibilityTest extends BaseAPISpec {
         featureClient.checkFeature("project:test:date-range").get() == true
       }
 
-      val feature = (situation.fetchProject(
-        "tenant",
-        "project"
-      ).json.get \ "features" \ 0).as[JsObject]
+      val feature =
+        (situation.fetchProject(
+          "tenant",
+          "project"
+        ).json.get \ "features" \ 0).as[JsObject]
 
-      var newCondition =
-        (feature \ "conditions").as[JsObject] ++ play.api.libs.json.Json.obj(
+      var newCondition = (feature \ "conditions").as[JsObject] ++
+        play.api.libs.json.Json.obj(
           "begin" -> end.atZone(
             ZoneId.systemDefault()
           ).format(DateTimeFormatter.ISO_OFFSET_DATE_TIME)
@@ -1302,8 +1306,8 @@ class ZShouldRunLast_V1CompatibilityTest extends BaseAPISpec {
         featureClient.checkFeature("project:test:date-range").get() == false
       }
 
-      newCondition =
-        (feature \ "conditions").as[JsObject] ++ play.api.libs.json.Json.obj(
+      newCondition = (feature \ "conditions").as[JsObject] ++
+        play.api.libs.json.Json.obj(
           "begin" -> begin.atZone(
             ZoneId.systemDefault()
           ).format(DateTimeFormatter.ISO_OFFSET_DATE_TIME)
@@ -1362,13 +1366,14 @@ class ZShouldRunLast_V1CompatibilityTest extends BaseAPISpec {
         featureClient.checkFeature("project:release-date").get() == true
       }
 
-      val feature = (situation.fetchProject(
-        "tenant",
-        "project"
-      ).json.get \ "features" \ 0).as[JsObject]
+      val feature =
+        (situation.fetchProject(
+          "tenant",
+          "project"
+        ).json.get \ "features" \ 0).as[JsObject]
 
-      var newCondition =
-        (feature \ "conditions").as[JsObject] ++ play.api.libs.json.Json.obj(
+      var newCondition = (feature \ "conditions").as[JsObject] ++
+        play.api.libs.json.Json.obj(
           "begin" -> afterNow.atZone(
             ZoneId.systemDefault()
           ).format(DateTimeFormatter.ISO_OFFSET_DATE_TIME)
@@ -1380,8 +1385,8 @@ class ZShouldRunLast_V1CompatibilityTest extends BaseAPISpec {
         featureClient.checkFeature("project:release-date").get() == false
       }
 
-      newCondition =
-        (feature \ "conditions").as[JsObject] ++ play.api.libs.json.Json.obj(
+      newCondition = (feature \ "conditions").as[JsObject] ++
+        play.api.libs.json.Json.obj(
           "begin" -> begin.atZone(
             ZoneId.systemDefault()
           ).format(DateTimeFormatter.ISO_OFFSET_DATE_TIME)

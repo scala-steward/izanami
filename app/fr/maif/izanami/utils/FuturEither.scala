@@ -70,13 +70,19 @@ case class FutureEither[+A](value: Future[Either[IzanamiError, A]]) {
       case Right(v)  => valueMapper(v)
     })
   }
-  def transform[R](t: (curr: Either[IzanamiError, A]) => Either[IzanamiError, R])(implicit
+  def transform[R](t: (curr: Either[IzanamiError, A]) => Either[
+    IzanamiError,
+    R
+  ])(implicit
       ec: ExecutionContext
   ) = {
     value.map(e => t(e)).toFEither
   }
 
-  def transformWith[R](t: (curr: Either[IzanamiError, A]) => FutureEither[R])(implicit
+  def transformWith[R](t: (curr: Either[
+    IzanamiError,
+    A
+  ]) => FutureEither[R])(implicit
       ec: ExecutionContext
   ) = {
     value.map(e => t(e)).mapToFEither.flatMap(f => f)

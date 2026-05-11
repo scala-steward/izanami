@@ -1105,7 +1105,8 @@ class WebhookAPISpec extends BaseAPISpec {
 
       val body = Json.parse(request._1.getBodyAsString)
       val user =
-        body \ "payload" \ "conditions" \ "" \ "conditions" \ 0 \ "rule" \ "users" \ 0
+        body \ "payload" \ "conditions" \ "" \ "conditions" \ 0 \ "rule" \
+          "users" \ 0
       user.as[String] mustEqual "foo"
     }
 
@@ -1566,7 +1567,8 @@ class WebhookAPISpec extends BaseAPISpec {
       response.status mustBe BAD_REQUEST
     }
 
-    "prevent webhook update if there is features or projects for global hooks" in {}
+    "prevent webhook update if there is features or projects for global hooks" in
+      {}
   }
 
   "webhook right endpoint" should {

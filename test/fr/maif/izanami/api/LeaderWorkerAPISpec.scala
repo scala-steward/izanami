@@ -13,7 +13,6 @@ import play.api.http.Status.OK
 import play.api.test.Helpers.await
 import play.api.libs.json.Json
 
-
 class LeaderWorkerAPISpec extends BaseAPISpec {
   "Leader mode" should {
     "allow to call admin endpoints" in {
@@ -64,9 +63,10 @@ class LeaderWorkerAPISpec extends BaseAPISpec {
         .build()
       val response = await(ws.url("http://localhost:9000/login").get());
       // In some cases the frontend is not build (for instance in CI, and we must rely on play response)
-      response.status must (equal (OK) or equal (NOT_FOUND))
-      if(response.status == NOT_FOUND) {
-        ((Json.parse(response.body)) \ "message").as[String] mustEqual "Resource not found by Assets controller"
+      response.status must (equal(OK) or equal(NOT_FOUND))
+      if (response.status == NOT_FOUND) {
+        ((Json.parse(response.body)) \ "message").as[String] mustEqual
+          "Resource not found by Assets controller"
       }
     }
   }
@@ -319,13 +319,14 @@ class LeaderWorkerAPISpec extends BaseAPISpec {
         .loggedInWithAdminRights()
         .build()
       val response = await(ws.url("http://localhost:9000/").get());
-      
+
       // In some cases the frontend is not build (for instance in CI, and we must rely on play response)
-      response.status must (equal (OK) or equal (NOT_FOUND))
-      if(response.status == NOT_FOUND) {
-        ((Json.parse(response.body)) \ "message").as[String] mustEqual "Resource not found by Assets controller"
+      response.status must (equal(OK) or equal(NOT_FOUND))
+      if (response.status == NOT_FOUND) {
+        ((Json.parse(response.body)) \ "message").as[String] mustEqual
+          "Resource not found by Assets controller"
       }
-    
+
     }
 
     "should not take blacklist into account" in {

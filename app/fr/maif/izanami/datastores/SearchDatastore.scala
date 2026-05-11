@@ -51,7 +51,8 @@ class SearchDatastore(val env: Env) extends Datastore {
     """
     }
     if (filter.isEmpty || filter.contains(Some(SearchEntityObject.Project))) {
-      unionQueries :+= s"""
+      unionQueries :+=
+        s"""
       SELECT row_to_json(p.*) as json, GREATEST(p.name_score, p.description_score) AS match_score, 'project' as _type, $$3 as tenant
       FROM scored_projects p
       WHERE p.name_score > $similarityThresholdParam OR p.description_score > $similarityThresholdParam OR p.id::text = '$query'"""
@@ -72,7 +73,8 @@ class SearchDatastore(val env: Env) extends Datastore {
         WHERE f.project=p.name
       )
     """
-      unionQueries :+= s"""
+      unionQueries :+=
+        s"""
         SELECT row_to_json(f.*) as json, GREATEST(f.name_score, f.description_score) AS match_score, 'feature' as _type, $$3 as tenant
         FROM scored_features f
         WHERE f.name_score > $similarityThresholdParam OR f.description_score > $similarityThresholdParam OR f.id::text = '$query'"""
@@ -97,7 +99,8 @@ class SearchDatastore(val env: Env) extends Datastore {
         OR utr.default_key_right IS NOT NULL
       )
     """
-      unionQueries :+= s"""
+      unionQueries :+=
+        s"""
          SELECT row_to_json(k.*) as json, GREATEST(k.name_score, k.description_score) AS match_score, 'key' as _type, $$3 as tenant
          FROM scored_keys k
          WHERE k.name_score > $similarityThresholdParam OR k.description_score > $similarityThresholdParam"""
@@ -119,7 +122,8 @@ class SearchDatastore(val env: Env) extends Datastore {
         OR u.admin=true
       )
     """
-      unionQueries :+= s"""
+      unionQueries :+=
+        s"""
       SELECT row_to_json(t.*) as json, GREATEST(t.name_score, t.description_score) AS match_score, 'tag' as _type, $$3 as tenant
       FROM scored_tags t
       WHERE t.name_score > $similarityThresholdParam OR t.description_score > $similarityThresholdParam"""
@@ -139,7 +143,8 @@ class SearchDatastore(val env: Env) extends Datastore {
         OR u.admin=true
       )
       """
-      unionQueries :+= s"""
+      unionQueries :+=
+        s"""
         SELECT row_to_json(s.*) as json, s.name_score AS match_score, 'script' as _type, $$3 as tenant
         FROM scored_scripts s
         WHERE s.name_score > $similarityThresholdParam"""
@@ -160,7 +165,8 @@ class SearchDatastore(val env: Env) extends Datastore {
         WHERE (utr.level IS NOT NULL OR u.admin=true) AND c.global=true
       )
        """
-      unionQueries :+= s"""
+      unionQueries :+=
+        s"""
          SELECT row_to_json(gc.*) as json, gc.name_score AS match_score, 'global_context' as _type, $$3 as tenant
          FROM scored_global_contexts gc
          WHERE gc.name_score > $similarityThresholdParam """
@@ -182,7 +188,8 @@ class SearchDatastore(val env: Env) extends Datastore {
               WHERE (utr.level IS NOT NULL OR u.admin=true) AND c.global=false
           )
     """
-      unionQueries :+= s"""
+      unionQueries :+=
+        s"""
           SELECT row_to_json(lc.*) as json, lc.name_score AS match_score, 'local_context' as _type, $$3 as tenant
           FROM scored_local_contexts lc
           WHERE lc.name_score > $similarityThresholdParam """
@@ -205,7 +212,8 @@ class SearchDatastore(val env: Env) extends Datastore {
              OR u.admin=true
           )
     """
-      unionQueries :+= s"""
+      unionQueries :+=
+        s"""
          SELECT row_to_json(w.*) as json, GREATEST(w.name_score, w.description_score) AS match_score, 'webhook' as _type, $$3 as tenant
          FROM scored_webhooks w
          WHERE w.name_score > $similarityThresholdParam OR w.description_score > $similarityThresholdParam"""

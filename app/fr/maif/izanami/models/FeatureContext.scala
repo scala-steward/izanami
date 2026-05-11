@@ -229,8 +229,9 @@ object FeatureContext {
   ): JsResult[CompleteContextualStrategy] = {
 
     val enabled = (json \ "enabled").asOpt[Boolean].getOrElse(true)
-    val maybeWasmConfig =
-      (json \ "wasmConfig").asOpt[WasmConfig](WasmConfig.format)
+    val maybeWasmConfig = (json \ "wasmConfig").asOpt[WasmConfig](
+      WasmConfig.format
+    )
     (json \ "resultType")
       .asOpt[ResultType](ResultType.resultTypeReads)
       .map {

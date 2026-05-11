@@ -33,7 +33,8 @@ case class WasmManagerClient(client: WSClient, url: String)(implicit
           .url(s"$url/api/plugins")
           .withHttpHeaders(
             ("Content-Type", "application/json"),
-            ("Authorization" -> "Basic YWRtaW4tYXBpLWFwaWtleS1pZDphZG1pbi1hcGktYXBpa2V5LXNlY3JldA==")
+            ("Authorization" ->
+              "Basic YWRtaW4tYXBpLWFwaWtleS1pZDphZG1pbi1hcGktYXBpa2V5LXNlY3JldA==")
           )
           .post(
             Json.obj(
@@ -63,7 +64,8 @@ case class WasmManagerClient(client: WSClient, url: String)(implicit
     client
       .url(s"$url/api/plugins/$pluginId/build?release=$release")
       .withHttpHeaders(
-        "Authorization" -> "Basic YWRtaW4tYXBpLWFwaWtleS1pZDphZG1pbi1hcGktYXBpa2V5LXNlY3JldA=="
+        "Authorization" ->
+          "Basic YWRtaW4tYXBpLWFwaWtleS1pZDphZG1pbi1hcGktYXBpa2V5LXNlY3JldA=="
       )
       .post("")
       .map(response => (response.json \ "queue_id").as[String])
@@ -77,7 +79,8 @@ case class WasmManagerClient(client: WSClient, url: String)(implicit
       .url(s"$url/api/plugins/build")
       .withHttpHeaders(("Content-Type", "application/json"))
       .withHttpHeaders(
-        "Authorization" -> "Basic YWRtaW4tYXBpLWFwaWtleS1pZDphZG1pbi1hcGktYXBpa2V5LXNlY3JldA=="
+        "Authorization" ->
+          "Basic YWRtaW4tYXBpLWFwaWtleS1pZDphZG1pbi1hcGktYXBpa2V5LXNlY3JldA=="
       )
       .post(
         Json.obj(
@@ -116,7 +119,8 @@ case class WasmManagerClient(client: WSClient, url: String)(implicit
         client
           .url(s"http://localhost:5001/wasm/$name")
           .withHttpHeaders(
-            "Authorization" -> "Basic YWRtaW4tYXBpLWFwaWtleS1pZDphZG1pbi1hcGktYXBpa2V5LXNlY3JldA=="
+            "Authorization" ->
+              "Basic YWRtaW4tYXBpLWFwaWtleS1pZDphZG1pbi1hcGktYXBpa2V5LXNlY3JldA=="
           )
           .get()
           .map(resp =>
@@ -156,7 +160,8 @@ case class WasmManagerClient(client: WSClient, url: String)(implicit
         client
           .url(s"http://localhost:5001/local/wasm/$id")
           .withHttpHeaders(
-            "Authorization" -> "Basic YWRtaW4tYXBpLWFwaWtleS1pZDphZG1pbi1hcGktYXBpa2V5LXNlY3JldA=="
+            "Authorization" ->
+              "Basic YWRtaW4tYXBpLWFwaWtleS1pZDphZG1pbi1hcGktYXBpa2V5LXNlY3JldA=="
           )
           .get()
           .map(resp =>

@@ -64,9 +64,10 @@ case class FeatureWithOverloads(
       .getOrElse(context, baseFeature)
 
     copy(overloads =
-      overloads + (context -> baseFeature.withStrategy(
-        contextualFeatureStrategy
-      ))
+      overloads +
+        (context -> baseFeature.withStrategy(
+          contextualFeatureStrategy
+        ))
     )
   }
 }
@@ -210,11 +211,15 @@ object LightWeightFeature {
   ): Boolean = {
     (f1, f2) match {
       case (f1: LightWeightWasmFeature, f2: LightWeightWasmFeature) =>
-        f1.enabled != f2.enabled || f1.wasmConfigName != f2.wasmConfigName || f1.name != f2.name || f1.resultType != f2.resultType
+        f1.enabled != f2.enabled || f1.wasmConfigName != f2.wasmConfigName ||
+        f1.name != f2.name || f1.resultType != f2.resultType
       case (f1: SingleConditionFeature, f2: SingleConditionFeature) =>
-        f1.enabled != f2.enabled || f1.condition != f2.condition || f1.name != f2.name || f1.resultType != f2.resultType
+        f1.enabled != f2.enabled || f1.condition != f2.condition ||
+        f1.name != f2.name || f1.resultType != f2.resultType
       case (f1: Feature, f2: Feature) =>
-        f1.enabled != f2.enabled || f1.resultDescriptor != f2.resultDescriptor || f1.name != f2.name || f1.resultType != f2.resultType
+        f1.enabled != f2.enabled ||
+        f1.resultDescriptor != f2.resultDescriptor || f1.name != f2.name ||
+        f1.resultType != f2.resultType
       case _ => true
     }
   }
@@ -225,9 +230,12 @@ object LightWeightFeature {
   ): Boolean = {
     (f1, f2) match {
       case (f1: LightWeightWasmFeature, f2: LightWeightWasmFeatureStrategy) =>
-        f1.enabled != f2.enabled || f1.wasmConfigName != f2.wasmConfigName || f1.resultType != f2.resultType
+        f1.enabled != f2.enabled || f1.wasmConfigName != f2.wasmConfigName ||
+        f1.resultType != f2.resultType
       case (f1: Feature, f2: ClassicalFeatureStrategy) =>
-        f1.enabled != f2.enabled || f1.resultDescriptor != f2.resultDescriptor || f1.resultType != f2.resultType
+        f1.enabled != f2.enabled ||
+        f1.resultDescriptor != f2.resultDescriptor ||
+        f1.resultType != f2.resultType
       case _ => true
     }
   }
@@ -625,13 +633,16 @@ object LightWeightWasmFeature {
             project = (json \ "project").as[String],
             enabled = (json \ "enabled").as[Boolean],
             wasmConfigName = (json \ "config").as[String],
-            metadata =
-              (json \ "metadata").asOpt[JsObject].getOrElse(Json.obj()),
-            tags =
-              (json \ "tags").asOpt[Set[String]].getOrElse(Set.empty[String]),
+            metadata = (json \ "metadata").asOpt[JsObject].getOrElse(
+              Json.obj()
+            ),
+            tags = (json \ "tags").asOpt[Set[String]].getOrElse(
+              Set.empty[String]
+            ),
             description = (json \ "description").asOpt[String].getOrElse(""),
-            resultType =
-              (json \ "resultType").as[ResultType](ResultType.resultTypeReads)
+            resultType = (json \ "resultType").as[ResultType](
+              ResultType.resultTypeReads
+            )
           )
         } match {
           case Failure(ex)    => JsError(ex.getMessage)
@@ -660,11 +671,13 @@ object LightWeightWasmFeature {
           enabled = (json \ "enabled").as[Boolean],
           wasmConfig = (json \ "config").as(WasmConfig.format),
           metadata = (json \ "metadata").asOpt[JsObject].getOrElse(Json.obj()),
-          tags =
-            (json \ "tags").asOpt[Set[String]].getOrElse(Set.empty[String]),
+          tags = (json \ "tags").asOpt[Set[String]].getOrElse(
+            Set.empty[String]
+          ),
           description = (json \ "description").asOpt[String].getOrElse(""),
-          resultType =
-            (json \ "resultType").as[ResultType](ResultType.resultTypeReads)
+          resultType = (json \ "resultType").as[ResultType](
+            ResultType.resultTypeReads
+          )
         )
       } match {
         case Failure(ex)    => JsError(ex.getMessage)
@@ -730,7 +743,8 @@ case class FeatureRequest(
     context: Seq[String] = Seq()
 ) {
   def isEmpty: Boolean = {
-    projects.isEmpty && oneTagIn.isEmpty && allTagsIn.isEmpty && noTagIn.isEmpty && features.isEmpty
+    projects.isEmpty && oneTagIn.isEmpty && allTagsIn.isEmpty &&
+    noTagIn.isEmpty && features.isEmpty
   }
 }
 
@@ -896,8 +910,9 @@ object Feature {
         case Right(active) =>
           Right(
             Some(
-              writeFeatureInLegacyFormat(feature) ++ Json
-                .obj("active" -> active)
+              writeFeatureInLegacyFormat(feature) ++
+                Json
+                  .obj("active" -> active)
             )
           )
       }(env.executionContext)
@@ -1067,8 +1082,9 @@ object Feature {
     val maybeArray = (json \ "conditions").toOption
       .flatMap(conds => conds.asOpt[JsArray])
 
-    val maybeWasmConfig =
-      (json \ "wasmConfig").asOpt[WasmConfig](WasmConfig.format)
+    val maybeWasmConfig = (json \ "wasmConfig").asOpt[WasmConfig](
+      WasmConfig.format
+    )
 
     val maybeLightWeightConfig = (json \ "wasmConfig").asOpt[String]
 
@@ -1101,7 +1117,8 @@ object Feature {
         yield {
           val maybeConditionJsArray =
             if (
-              (maybeArray.isEmpty && (json \ "activationStrategy").isEmpty) || maybeArray
+              (maybeArray.isEmpty && (json \ "activationStrategy").isEmpty) ||
+              maybeArray
                 .exists(v => v.value.isEmpty)
             ) {
               Some(JsArray())

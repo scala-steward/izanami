@@ -120,7 +120,7 @@ class WebhookListener(env: Env, eventService: EventService) {
                     }
                   })
                 })
-                
+
               }
             ).flatten.mapToFEither
         })
@@ -203,10 +203,11 @@ class WebhookListener(env: Env, eventService: EventService) {
       None
     } else {
       val theoricalDurationBeforeNextCall =
-        Math.round(retryConfig.intialDelay * 1000 * (Math.pow(
-          retryConfig.multiplier,
-          count
-        ))).milliseconds
+        Math.round(retryConfig.intialDelay * 1000 *
+          (Math.pow(
+            retryConfig.multiplier,
+            count
+          ))).milliseconds
       val duration = Math.min(
         theoricalDurationBeforeNextCall.toSeconds,
         retryConfig.maxDelay

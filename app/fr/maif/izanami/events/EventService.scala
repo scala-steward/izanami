@@ -465,9 +465,10 @@ object EventService {
           "type" -> "PROJECT_UPDATED",
           "previous" -> previousJson,
           "origin" -> EventOrigin.eventOriginWrites.writes(origin)
-        ) ++ EventAuthentication.eventAuthenticationWrites
-        .writes(authentication)
-        .as[JsObject]
+        ) ++
+        EventAuthentication.eventAuthenticationWrites
+          .writes(authentication)
+          .as[JsObject]
     }
     case SourceProjectDeleted(
           tenant,
@@ -485,9 +486,10 @@ object EventService {
           "user" -> user,
           "type" -> "PROJECT_DELETED",
           "origin" -> EventOrigin.eventOriginWrites.writes(origin)
-        ) ++ EventAuthentication.eventAuthenticationWrites
-        .writes(authentication)
-        .as[JsObject]
+        ) ++
+        EventAuthentication.eventAuthenticationWrites
+          .writes(authentication)
+          .as[JsObject]
     }
     case SourceProjectCreated(
           tenant,
@@ -505,9 +507,10 @@ object EventService {
           "user" -> user,
           "type" -> "PROJECT_CREATED",
           "origin" -> EventOrigin.eventOriginWrites.writes(origin)
-        ) ++ EventAuthentication.eventAuthenticationWrites
-        .writes(authentication)
-        .as[JsObject]
+        ) ++
+        EventAuthentication.eventAuthenticationWrites
+          .writes(authentication)
+          .as[JsObject]
     }
     case SourceFeatureCreated(
           id,
@@ -531,9 +534,10 @@ object EventService {
         )
         .applyOnWithOpt(projectId)((jsObj, id) =>
           jsObj + ("projectId" -> JsString(id))
-        ) ++ EventAuthentication.eventAuthenticationWrites
-        .writes(authentication)
-        .as[JsObject]
+        ) ++
+        EventAuthentication.eventAuthenticationWrites
+          .writes(authentication)
+          .as[JsObject]
     }
     case SourceFeatureUpdated(
           id,
@@ -559,9 +563,10 @@ object EventService {
         )
         .applyOnWithOpt(projectId)((jsObj, id) =>
           jsObj + ("projectId" -> JsString(id))
-        ) ++ EventAuthentication.eventAuthenticationWrites
-        .writes(authentication)
-        .as[JsObject]
+        ) ++
+        EventAuthentication.eventAuthenticationWrites
+          .writes(authentication)
+          .as[JsObject]
     }
     case SourceFeatureDeleted(
           id,
@@ -585,27 +590,30 @@ object EventService {
         )
         .applyOnWithOpt(projectId)((jsObj, id) =>
           jsObj + ("projectId" -> JsString(id))
-        ) ++ EventAuthentication.eventAuthenticationWrites
-        .writes(authentication)
-        .as[JsObject]
+        ) ++
+        EventAuthentication.eventAuthenticationWrites
+          .writes(authentication)
+          .as[JsObject]
     case SourceTenantDeleted(tenant, user, origin, authentication) =>
       Json.obj(
         "tenant" -> tenant,
         "type" -> "TENANT_DELETED",
         "user" -> user,
         "origin" -> EventOrigin.eventOriginWrites.writes(origin)
-      ) ++ EventAuthentication.eventAuthenticationWrites
-        .writes(authentication)
-        .as[JsObject]
+      ) ++
+        EventAuthentication.eventAuthenticationWrites
+          .writes(authentication)
+          .as[JsObject]
     case SourceTenantCreated(tenant, user, origin, authentication) =>
       Json.obj(
         "tenant" -> tenant,
         "type" -> "TENANT_CREATED",
         "user" -> user,
         "origin" -> EventOrigin.eventOriginWrites.writes(origin)
-      ) ++ EventAuthentication.eventAuthenticationWrites
-        .writes(authentication)
-        .as[JsObject]
+      ) ++
+        EventAuthentication.eventAuthenticationWrites
+          .writes(authentication)
+          .as[JsObject]
     case SourceConfigurationUpdatedEvent(
           user,
           origin,
@@ -623,9 +631,10 @@ object EventService {
         "newConfiguration" -> Json.toJson(newConfiguration)(
           IzanamiConfiguration.configurationWriteForExposition
         )
-      ) ++ EventAuthentication.eventAuthenticationWrites
-        .writes(authentication)
-        .as[JsObject]
+      ) ++
+        EventAuthentication.eventAuthenticationWrites
+          .writes(authentication)
+          .as[JsObject]
   }
   implicit val lighweightFeatureWrites: Writes[LightWeightFeature] =
     lightweightFeatureWrite
@@ -657,9 +666,10 @@ object EventService {
             )
             .applyOnWithOpt(emittedAt)((obj, instant) =>
               obj + ("emittedAt" -> JsString(instant.toString))
-            ) ++ EventAuthentication.eventAuthenticationWrites
-            .writes(authentication)
-            .as[JsObject]
+            ) ++
+            EventAuthentication.eventAuthenticationWrites
+              .writes(authentication)
+              .as[JsObject]
         }
         case ProjectDeleted(
               eventId,
@@ -683,9 +693,10 @@ object EventService {
             )
             .applyOnWithOpt(emittedAt)((obj, instant) =>
               obj + ("emittedAt" -> JsString(instant.toString))
-            ) ++ EventAuthentication.eventAuthenticationWrites
-            .writes(authentication)
-            .as[JsObject]
+            ) ++
+            EventAuthentication.eventAuthenticationWrites
+              .writes(authentication)
+              .as[JsObject]
         case ProjectCreated(
               eventId,
               tenant,
@@ -708,9 +719,10 @@ object EventService {
             )
             .applyOnWithOpt(emittedAt)((obj, instant) =>
               obj + ("emittedAt" -> JsString(instant.toString))
-            ) ++ EventAuthentication.eventAuthenticationWrites
-            .writes(authentication)
-            .as[JsObject]
+            ) ++
+            EventAuthentication.eventAuthenticationWrites
+              .writes(authentication)
+              .as[JsObject]
         case FeatureCreated(
               eventId,
               id,
@@ -735,9 +747,10 @@ object EventService {
             )
             .applyOnWithOpt(emittedAt)((obj, instant) =>
               obj + ("emittedAt" -> JsString(instant.toString))
-            ) ++ EventAuthentication.eventAuthenticationWrites
-            .writes(authentication)
-            .as[JsObject]
+            ) ++
+            EventAuthentication.eventAuthenticationWrites
+              .writes(authentication)
+              .as[JsObject]
         case FeatureUpdated(
               eventId,
               id,
@@ -764,9 +777,10 @@ object EventService {
             )
             .applyOnWithOpt(emittedAt)((obj, instant) =>
               obj + ("emittedAt" -> JsString(instant.toString))
-            ) ++ EventAuthentication.eventAuthenticationWrites
-            .writes(authentication)
-            .as[JsObject]
+            ) ++
+            EventAuthentication.eventAuthenticationWrites
+              .writes(authentication)
+              .as[JsObject]
         case FeatureDeleted(
               eventId,
               id,
@@ -791,9 +805,10 @@ object EventService {
             )
             .applyOnWithOpt(emittedAt)((obj, instant) =>
               obj + ("emittedAt" -> JsString(instant.toString))
-            ) ++ EventAuthentication.eventAuthenticationWrites
-            .writes(authentication)
-            .as[JsObject]
+            ) ++
+            EventAuthentication.eventAuthenticationWrites
+              .writes(authentication)
+              .as[JsObject]
         case TenantDeleted(
               eventId,
               tenant,
@@ -812,9 +827,10 @@ object EventService {
             )
             .applyOnWithOpt(emittedAt)((obj, instant) =>
               obj + ("emittedAt" -> JsString(instant.toString))
-            ) ++ EventAuthentication.eventAuthenticationWrites
-            .writes(authentication)
-            .as[JsObject]
+            ) ++
+            EventAuthentication.eventAuthenticationWrites
+              .writes(authentication)
+              .as[JsObject]
         case TenantCreated(
               eventId,
               tenant,
@@ -833,9 +849,10 @@ object EventService {
             )
             .applyOnWithOpt(emittedAt)((obj, instant) =>
               obj + ("emittedAt" -> JsString(instant.toString))
-            ) ++ EventAuthentication.eventAuthenticationWrites
-            .writes(authentication)
-            .as[JsObject]
+            ) ++
+            EventAuthentication.eventAuthenticationWrites
+              .writes(authentication)
+              .as[JsObject]
         case ConfigurationUpdated(
               eventId,
               user,
@@ -859,9 +876,10 @@ object EventService {
             )
             .applyOnWithOpt(emittedAt)((obj, instant) =>
               obj + ("emittedAt" -> JsString(instant.toString))
-            ) ++ EventAuthentication.eventAuthenticationWrites
-            .writes(authentication)
-            .as[JsObject]
+            ) ++
+            EventAuthentication.eventAuthenticationWrites
+              .writes(authentication)
+              .as[JsObject]
       }
     }
 
@@ -924,10 +942,12 @@ object EventService {
                   tenant,
                   user,
                   Some(conditions),
-                  previous =
-                    (json \ "previous").asOpt[Map[String, LightWeightFeature]](
-                      Reads.map(lightweightFeatureRead)
-                    ),
+                  previous = (json \ "previous").asOpt[Map[
+                    String,
+                    LightWeightFeature
+                  ]](
+                    Reads.map(lightweightFeatureRead)
+                  ),
                   emittedAt = emissionDate,
                   origin = origin,
                   authentication = authentication
@@ -1176,8 +1196,9 @@ class EventService(env: Env) {
       conn: SqlConnection
   ): Future[Unit] = {
     Tenant.isTenantValid(channel)
-    val global = channel.equalsIgnoreCase("izanami") || event
-      .isInstanceOf[SourceTenantDeleted]
+    val global = channel.equalsIgnoreCase("izanami") ||
+      event
+        .isInstanceOf[SourceTenantDeleted]
     val now = OffsetDateTime.now()
 
     val futureEvt: Future[SourceIzanamiEvent] = event match {

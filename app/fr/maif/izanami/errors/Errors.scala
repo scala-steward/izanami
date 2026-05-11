@@ -514,7 +514,9 @@ case class ImportFailureError(
       val errorValue = next._2.map((error, row) =>
         Json.obj("row" -> row, "error" -> error.message, "order" -> order)
       )
-      json + (errorEntry -> Json.obj("order" -> order, "failures" -> Json.toJson(errorValue)))
+      json +
+        (errorEntry ->
+          Json.obj("order" -> order, "failures" -> Json.toJson(errorValue)))
     })
 
     Results.Status(BAD_REQUEST)(Json.obj(
@@ -707,9 +709,9 @@ case object AssociatedWebhookDoesNotExist extends IzanamiError(
       status = BAD_REQUEST
     )
 case object AssociatedApiKeyDoesNotExist extends IzanamiError(
-  message = "API key does not exist",
-  status = BAD_REQUEST
-)
+      message = "API key does not exist",
+      status = BAD_REQUEST
+    )
 case object UserAlreadyHaveRightsForThisKey
     extends IzanamiError(
       message = "User already have right for this key",

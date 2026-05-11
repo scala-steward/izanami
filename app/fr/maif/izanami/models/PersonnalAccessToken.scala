@@ -189,7 +189,8 @@ object PersonnalAccessToken {
       )
     }).getOrElse {
       if (
-        (json \ "expiresAt").isDefined || (json \ "expirationTimezone").isDefined
+        (json \ "expiresAt").isDefined ||
+        (json \ "expirationTimezone").isDefined
       ) {
         JsError("Bad body format")
       } else {
@@ -318,11 +319,13 @@ object PersonnalAccessToken {
     Json.obj(
       "name" -> token.name,
       "username" -> token.username
-    ) ++ Json
-      .toJson(token.rights)(personnalAccessTokenRightWrites)
-      .as[JsObject] ++ Json
-      .toJson(token.expiration)(personnalAccessTokenExpirationWrites)
-      .as[JsObject]
+    ) ++
+      Json
+        .toJson(token.rights)(personnalAccessTokenRightWrites)
+        .as[JsObject] ++
+      Json
+        .toJson(token.expiration)(personnalAccessTokenExpirationWrites)
+        .as[JsObject]
   }
 
   def consultationTokenWrites: Writes[ReadPersonnalAccessToken] = {
@@ -330,9 +333,10 @@ object PersonnalAccessToken {
       Json.obj(
         "id" -> id,
         "createdAt" -> createdAt
-      ) ++ Json
-        .toJson(underlying)(personnalAccessTokenCreationRequestWrites)
-        .as[JsObject]
+      ) ++
+        Json
+          .toJson(underlying)(personnalAccessTokenCreationRequestWrites)
+          .as[JsObject]
   }
 
   def completePersonnalAccessTokenWrites

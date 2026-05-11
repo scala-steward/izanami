@@ -367,7 +367,8 @@ class ProjectAPISpec extends BaseAPISpec {
 
       projectResponse.status mustBe CREATED
       val rightResponse = testSituation.fetchUserRights()
-      (rightResponse.json.get \ "rights" \ "tenants" \ "my-tenant" \ "projects" \ "my-project" \ "level")
+      (rightResponse.json.get \ "rights" \ "tenants" \ "my-tenant" \
+        "projects" \ "my-project" \ "level")
         .as[String] mustEqual "Admin"
     }
 

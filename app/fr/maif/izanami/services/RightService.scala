@@ -244,7 +244,8 @@ class RightService(
           .getOrElse(CompleteRights.EMPTY)
 
         if (
-          user.admin != defaultRightsToApply.admin || user.rights.tenants != defaultRightsToApply.tenants
+          user.admin != defaultRightsToApply.admin ||
+          user.rights.tenants != defaultRightsToApply.tenants
         ) {
           updateUserRights(
             user.username,
@@ -789,10 +790,12 @@ class RightService(
   }
 
   private def shouldCheckMaxRight(user: UserTrait): Boolean = {
-    user.userType == OIDC && currentOidcConfiguration
+    user.userType == OIDC &&
+    currentOidcConfiguration
       .get()
       .map(_.roleRightMode)
-      .exists(_ != Supervised) && currentOidcConfiguration
+      .exists(_ != Supervised) &&
+    currentOidcConfiguration
       .get()
       .flatMap(_.maxRightsByRoles)
       .exists(_.nonEmpty)
@@ -1325,17 +1328,19 @@ case class MaxRights(
     tenants: Map[String, MaxTenantRoleRights] = Map()
 ) {
   def allowRightForWebhook(tenant: String, requestLevel: RightLevel): Boolean =
-    admin || tenants
-      .get(tenant)
-      .exists(r => r.allowRightForWebhook(requestLevel))
+    admin ||
+      tenants
+        .get(tenant)
+        .exists(r => r.allowRightForWebhook(requestLevel))
 
   def allowRightForProject(
       tenant: String,
       requestLevel: ProjectRightLevel
   ): Boolean =
-    admin || tenants
-      .get(tenant)
-      .exists(r => r.allowRightForProject(requestLevel))
+    admin ||
+      tenants
+        .get(tenant)
+        .exists(r => r.allowRightForProject(requestLevel))
 
   def allowRightForKey(tenant: String, requestLevel: RightLevel): Boolean =
     admin || tenants.get(tenant).exists(r => r.allowRightForKey(requestLevel))

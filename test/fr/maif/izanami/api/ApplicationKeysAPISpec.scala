@@ -163,7 +163,8 @@ class ApplicationKeysAPISpec extends BaseAPISpec {
       response.status mustBe CREATED
 
       val rightResponse = situation.fetchUserRights()
-      (rightResponse.json.get \ "rights" \ "tenants" \ "my-tenant" \ "keys" \ "my-api-key" \ "level")
+      (rightResponse.json.get \ "rights" \ "tenants" \ "my-tenant" \ "keys" \
+        "my-api-key" \ "level")
         .as[String] mustEqual "Admin"
     }
   }

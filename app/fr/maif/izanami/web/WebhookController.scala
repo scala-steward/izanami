@@ -41,12 +41,14 @@ class WebhookController(
             case JsSuccess(l: LightWebhook, _)
                 if l.global && (l.features.nonEmpty || l.projects.nonEmpty) =>
               BadRequest(Json.obj(
-                "message" -> "Webhook can't be global and specify features or projects"
+                "message" ->
+                  "Webhook can't be global and specify features or projects"
               )).future
             case JsSuccess(l: LightWebhook, _)
                 if !l.global && l.features.isEmpty && l.projects.isEmpty =>
               BadRequest(Json.obj(
-                "message" -> "Webhook must either be global or specify features or projects"
+                "message" ->
+                  "Webhook must either be global or specify features or projects"
               )).future
             case JsSuccess(webhook, _) => {
               webhook.bodyTemplate
@@ -117,16 +119,20 @@ class WebhookController(
             webhook <- LightWebhook.lightWebhookRead.reads(request.body).asOpt
           ) yield {
             if (
-              webhook.global && (webhook.features.nonEmpty || webhook.projects.nonEmpty)
+              webhook.global &&
+              (webhook.features.nonEmpty || webhook.projects.nonEmpty)
             ) {
               BadRequest(Json.obj(
-                "message" -> "Webhook can't be global and specify features or projects"
+                "message" ->
+                  "Webhook can't be global and specify features or projects"
               )).future
             } else if (
-              !webhook.global && webhook.projects.isEmpty && webhook.features.isEmpty
+              !webhook.global && webhook.projects.isEmpty &&
+              webhook.features.isEmpty
             ) {
               BadRequest(Json.obj(
-                "message" -> "Webhook must either be global or specify features or projects"
+                "message" ->
+                  "Webhook must either be global or specify features or projects"
               )).future
             } else {
               env.datastores.webhook

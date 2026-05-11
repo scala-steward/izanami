@@ -567,7 +567,8 @@ case class UserWithRights(
       tenant: String,
       requiredTenantRights: RequiredTenantRights
   ): Boolean = {
-    admin || rights.tenants
+    admin ||
+    rights.tenants
       .get(tenant)
       .exists(tr => {
         RightLevel
@@ -602,12 +603,14 @@ case class UserWithRights(
       tenant: String,
       rightLevel: ProjectRightLevel
   ): Boolean = {
-    admin || rights.tenants
+    admin ||
+    rights.tenants
       .get(tenant)
       .exists(tenantRight =>
-        tenantRight.level == RightLevel.Admin || tenantRight.projects
-          .get(project)
-          .exists(r => superiorOrEqualLevels(rightLevel).contains(r.level))
+        tenantRight.level == RightLevel.Admin ||
+          tenantRight.projects
+            .get(project)
+            .exists(r => superiorOrEqualLevels(rightLevel).contains(r.level))
       )
   }
 
@@ -616,44 +619,52 @@ case class UserWithRights(
       tenant: String,
       rightLevel: RightLevel
   ): Boolean = {
-    admin || rights.tenants
+    admin ||
+    rights.tenants
       .get(tenant)
       .exists(tenantRight =>
-        tenantRight.level == RightLevel.Admin || tenantRight.keys
-          .get(key)
-          .exists(r =>
-            RightLevel.superiorOrEqualLevels(rightLevel).contains(r.level)
-          )
+        tenantRight.level == RightLevel.Admin ||
+          tenantRight.keys
+            .get(key)
+            .exists(r =>
+              RightLevel.superiorOrEqualLevels(rightLevel).contains(r.level)
+            )
       )
   }
 
   def hasAdminRightForProject(project: String, tenant: String): Boolean = {
-    admin || rights.tenants
+    admin ||
+    rights.tenants
       .get(tenant)
       .exists(tenantRight =>
-        tenantRight.level == RightLevel.Admin || tenantRight.projects
-          .get(project)
-          .exists(r => r.level == ProjectRightLevel.Admin)
+        tenantRight.level == RightLevel.Admin ||
+          tenantRight.projects
+            .get(project)
+            .exists(r => r.level == ProjectRightLevel.Admin)
       )
   }
 
   def hasAdminRightForKey(key: String, tenant: String): Boolean = {
-    admin || rights.tenants
+    admin ||
+    rights.tenants
       .get(tenant)
       .exists(tenantRight =>
-        tenantRight.level == RightLevel.Admin || tenantRight.keys
-          .get(key)
-          .exists(r => r.level == RightLevel.Admin)
+        tenantRight.level == RightLevel.Admin ||
+          tenantRight.keys
+            .get(key)
+            .exists(r => r.level == RightLevel.Admin)
       )
   }
 
   def hasAdminRightForWebhook(webhook: String, tenant: String): Boolean = {
-    admin || rights.tenants
+    admin ||
+    rights.tenants
       .get(tenant)
       .exists(tenantRight =>
-        tenantRight.level == RightLevel.Admin || tenantRight.webhooks
-          .get(webhook)
-          .exists(r => r.level == RightLevel.Admin)
+        tenantRight.level == RightLevel.Admin ||
+          tenantRight.webhooks
+            .get(webhook)
+            .exists(r => r.level == RightLevel.Admin)
       )
   }
 
@@ -662,19 +673,22 @@ case class UserWithRights(
       tenant: String,
       rightLevel: RightLevel
   ): Boolean = {
-    admin || rights.tenants
+    admin ||
+    rights.tenants
       .get(tenant)
       .exists(tenantRight =>
-        tenantRight.level == RightLevel.Admin || tenantRight.webhooks
-          .get(webhook)
-          .exists(r =>
-            RightLevel.superiorOrEqualLevels(rightLevel).contains(r.level)
-          )
+        tenantRight.level == RightLevel.Admin ||
+          tenantRight.webhooks
+            .get(webhook)
+            .exists(r =>
+              RightLevel.superiorOrEqualLevels(rightLevel).contains(r.level)
+            )
       )
   }
 
   def hasAdminRightForTenant(tenant: String): Boolean = {
-    admin || rights.tenants
+    admin ||
+    rights.tenants
       .get(tenant)
       .exists(tenantRight => tenantRight.level == RightLevel.Admin)
   }
@@ -720,7 +734,8 @@ case class UserWithCompleteRightForOneTenant(
   def hasRightForProject(project: String, level: ProjectRightLevel): Boolean = {
     val maybeTenantAdmin = tenantRight.map(t => t.level == RightLevel.Admin)
 
-    admin || maybeTenantAdmin
+    admin ||
+    maybeTenantAdmin
       .filter(_ == true)
       .getOrElse(
         tenantRight
@@ -1130,7 +1145,6 @@ object TenantRightWithMaxRights {
     )
   }
   def reads: Reads[TenantRightWithMaxRights] =
-
     ((__ \ "level").readWithDefault[RightLevelIncludingNoRight](
       RightLevelIncludingNoRight.None
     )(RightLevelIncludingNoRight.reads) and
@@ -1459,7 +1473,10 @@ object Rights {
               )
             )
           )
-          if oldLevel != newLevel || oldDefaultProjectRight != newDefaultProjectRight || oldDefaultKeyRight != newDefaultKeyRight || oldDefaultWebhookRight != newDefaultWebhookRight => {
+          if oldLevel != newLevel ||
+            oldDefaultProjectRight != newDefaultProjectRight ||
+            oldDefaultKeyRight != newDefaultKeyRight ||
+            oldDefaultWebhookRight != newDefaultWebhookRight => {
         Some(
           UpsertTenantRights(
             tenantWideUpdate = Some(
@@ -1587,10 +1604,9 @@ object User {
       )
   )(TenantRight.apply _)
 
-  implicit val rightsReads: Reads[Rights] =
-    (__ \ "tenants")
-      .readWithDefault[Map[String, TenantRight]](Map())
-      .map(Rights.apply)
+  implicit val rightsReads: Reads[Rights] = (__ \ "tenants")
+    .readWithDefault[Map[String, TenantRight]](Map())
+    .map(Rights.apply)
 
   implicit val tenantRightWrite: Writes[TenantRight] = { tenantRight =>
     Json.obj(

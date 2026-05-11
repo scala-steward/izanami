@@ -36,7 +36,8 @@ class PersonnalAccessTokenController(
           Future.successful(
             Forbidden(
               Json.obj(
-                "error" -> "You can only read your own tokens unless you're admin"
+                "error" ->
+                  "You can only read your own tokens unless you're admin"
               )
             )
           )
@@ -61,7 +62,8 @@ class PersonnalAccessTokenController(
           Future.successful(
             BadRequest(
               Json.obj(
-                "error" -> "Mismatch token id: you must provide the same id in the body as in the url"
+                "error" ->
+                  "Mismatch token id: you must provide the same id in the body as in the url"
               )
             )
           )
@@ -69,7 +71,8 @@ class PersonnalAccessTokenController(
           Future.successful(
             Forbidden(
               Json.obj(
-                "error" -> "You can't update user users token unless you're admin"
+                "error" ->
+                  "You can't update user users token unless you're admin"
               )
             )
           )
@@ -137,7 +140,8 @@ class PersonnalAccessTokenController(
         Future.successful(
           BadRequest(
             Json.obj(
-              "error" -> "Mismatch users: you can only create tokens for yourself"
+              "error" ->
+                "Mismatch users: you can only create tokens for yourself"
             )
           )
         )

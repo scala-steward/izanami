@@ -653,12 +653,11 @@ object OldFeature {
     Boolean,
     Option[String],
     Set[String]
-  ] =
-    (__ \ "id").read[String] and
-      (__ \ "name").readWithDefault[String]("null") and
-      (__ \ "enabled").read[Boolean].orElse(Reads.pure(false)) and
-      (__ \ "description").readNullable[String] and
-      (__ \ "tags").readWithDefault[Set[String]](Set[String]())
+  ] = (__ \ "id").read[String] and
+    (__ \ "name").readWithDefault[String]("null") and
+    (__ \ "enabled").read[Boolean].orElse(Reads.pure(false)) and
+    (__ \ "description").readNullable[String] and
+    (__ \ "tags").readWithDefault[Set[String]](Set[String]())
 
   implicit val oldHourRangeWrites: Writes[OldHourRangeFeature] = feature => {
     commonWrite(feature) ++ Json.obj(

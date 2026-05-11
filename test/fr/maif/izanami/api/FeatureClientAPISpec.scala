@@ -151,9 +151,11 @@ class FeatureClientAPISpec extends BaseAPISpec {
       )
       response.status mustEqual OK
       val json = response.json.get
-      (json \ "project:another:customer-list-feature" \ "conditions" \ "" \ "conditions" \ 0 \ "rule" \ "users")
+      (json \ "project:another:customer-list-feature" \ "conditions" \ "" \
+        "conditions" \ 0 \ "rule" \ "users")
         .as[Seq[String]] must contain theSameElementsAs Seq("foo", "bar", "baz")
-      (json \ "project:test:percentage-feature" \ "conditions" \ "" \ "conditions" \ 0 \ "rule" \ "percentage")
+      (json \ "project:test:percentage-feature" \ "conditions" \ "" \
+        "conditions" \ 0 \ "rule" \ "percentage")
         .as[Int] mustEqual 75
     }
 
@@ -1171,7 +1173,8 @@ class FeatureClientAPISpec extends BaseAPISpec {
         projects = Seq(testData.findProjectId("my-tenant", "my-project").get),
         headers = testData.keyHeaders(
           "my-key"
-        ) + ("Izanami-Client-Id" -> "aaaa") + ("Izanami-Client-Secret" -> "aaaa")
+        ) + ("Izanami-Client-Id" -> "aaaa") +
+          ("Izanami-Client-Secret" -> "aaaa")
       )
 
       result.status mustBe FORBIDDEN
@@ -2063,15 +2066,19 @@ class FeatureClientAPISpec extends BaseAPISpec {
       )
       val json = response.json.get
 
-      (json \ fooId \ "conditions" \ "" \ "conditions" \ 0 \ "rule" \ "percentage")
+      (json \ fooId \ "conditions" \ "" \ "conditions" \ 0 \ "rule" \
+        "percentage")
         .as[Int] mustEqual 75
-      (json \ fooId \ "conditions" \ "dev" \ "conditions" \ 0 \ "rule" \ "percentage")
+      (json \ fooId \ "conditions" \ "dev" \ "conditions" \ 0 \ "rule" \
+        "percentage")
         .as[Int] mustEqual 80
-      (json \ fooId \ "conditions" \ "dev/bar" \ "conditions" \ 0 \ "rule" \ "percentage")
+      (json \ fooId \ "conditions" \ "dev/bar" \ "conditions" \ 0 \ "rule" \
+        "percentage")
         .as[Int] mustEqual 90
       (json \ barId \ "conditions" \ "" \ "conditions" \ 0 \ "rule" \ "users")
         .as[Seq[String]] must contain theSameElementsAs Seq("user1", "user2")
-      (json \ barId \ "conditions" \ "" \ "conditions" \ 0 \ "period" \ "activationDays" \ "days")
+      (json \ barId \ "conditions" \ "" \ "conditions" \ 0 \ "period" \
+        "activationDays" \ "days")
         .as[Seq[String]] must contain theSameElementsAs Seq("MONDAY", "TUESDAY")
     }
 

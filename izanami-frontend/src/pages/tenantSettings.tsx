@@ -53,6 +53,7 @@ import { Loader } from "../components/Loader";
 import { DEFAULT_TIMEZONE } from "../utils/datetimeUtils";
 import { PrevisionalRightsPill } from "../components/PrevisionalRightsPill";
 import { ErrorDisplay } from "../components/FeatureForm";
+import { successToast } from "../utils/toastUtils";
 
 export function TenantSettings(props: { tenant: string }) {
   const { tenant } = props;
@@ -278,6 +279,7 @@ export function TenantSettings(props: { tenant: string }) {
                       );
                     } else {
                       setImportDisplayed(false);
+                      successToast("Import successful !");
                       return Promise.resolve();
                     }
                   })

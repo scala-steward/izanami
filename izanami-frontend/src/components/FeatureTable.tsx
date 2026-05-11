@@ -1061,21 +1061,21 @@ export function FeatureTable(props: {
     columns.push({
       accessorKey: "name",
       header: () => "Feature name",
-      minSize: 150,
-      size: 20,
+      minSize: 200,
+      size: 30,
       cell: (props: { row: Row<any> }) => {
         const feature: TLightFeature = props.row.original;
         const featureNameBase = displayFeature(feature);
 
         if (contextQueries.some((q) => q.isLoading)) {
           return (
-            <div className="d-flex justify-start align-items-center">
+            <div className="d-flex justify-start align-items-center" style={{wordBreak: "break-all"}}>
               {featureNameBase}
             </div>
           );
         } else if (contextQueries.some((q) => q.isError)) {
           return (
-            <div className="d-flex align-items-center">
+            <div className="d-flex align-items-center" style={{wordBreak: "break-all"}}>
               <div className="d-flex py-2">
                 {featureNameBase}
                 <Pill tooltip="Failed to fetch overloads" criticity={"error"}>
@@ -1094,13 +1094,13 @@ export function FeatureTable(props: {
 
           if (!maybeContexts || maybeContexts.length === 0) {
             return (
-              <div className="d-flex justify-start align-items-center">
+              <div className="d-flex justify-start align-items-center" style={{wordBreak: "break-all"}}>
                 {featureNameBase}
               </div>
             );
           } else {
             return (
-              <div className="d-flex align-items-center">
+              <div className="d-flex align-items-center" style={{wordBreak: "break-all"}}>
                 <div className="d-flex py-2">
                   {featureNameBase}
                   <Pill
@@ -1133,7 +1133,7 @@ export function FeatureTable(props: {
       cell: (props: { row: Row<any> }) => {
         const feature = props.row.original;
         return (
-          <div className="d-flex justify-start align-items-center">
+          <div className="d-flex justify-start align-items-center" style={{wordBreak: "break-all"}}>
             {displayFeature(feature)}
           </div>
         );
@@ -1263,7 +1263,8 @@ export function FeatureTable(props: {
     columns.push({
       id: "details",
       header: () => "Details",
-      minSize: 250,
+      minSize: 200,
+      size: 30,
       cell: (props: any) => <FeatureDetails feature={props.row.original!} />,
     });
   }
@@ -1272,7 +1273,7 @@ export function FeatureTable(props: {
       accessorKey: "id",
       maxSize: 80,
       minSize: 60,
-      size: 15,
+      size: 5,
       header: () => "ID",
       cell: (props: any) => {
         const value = props.row.original.id;
@@ -1297,7 +1298,7 @@ export function FeatureTable(props: {
         ));
       },
       size: 10,
-      minSize: 200,
+      minSize: 100,
       meta: {
         valueType: "discrete",
       },

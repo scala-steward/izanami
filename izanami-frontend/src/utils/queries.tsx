@@ -215,16 +215,19 @@ export function importData(
   tenant: string,
   importRequest: ImportRequest,
 ): Promise<ImportError> {
+  console.log("importRequest", importRequest);
   let queryParams: { [x: string]: string } = {
     conflict: importRequest.conflictStrategy,
     version: "2",
   };
-  queryParams = Object.entries(importRequest.featureConflict ?? {})
-    .filter(([key, value]) => value)
-    .reduce((acc, [key, value]) => {
-      acc[`feature${capitalizeFirstLetter(key)}`] = value;
-      return acc;
-    }, queryParams);
+  if (importRequest.fineTuneFeatureConflict) {
+    queryParams = Object.entries(importRequest.featureConflict ?? {})
+      .filter(([key, value]) => value)
+      .reduce((acc, [key, value]) => {
+        acc[`feature${capitalizeFirstLetter(key)}`] = value;
+        return acc;
+      }, queryParams);
+  }
 
   const queryParamString = new URLSearchParams(queryParams).toString();
 
@@ -1153,7 +1156,7 @@ function _handleFetchResponse<T>(
           : error?.message
           ? error.message
           : JSON.stringify(error);
-      errorToast(msg)
+      errorToast(msg);
       throw error;
     });
 }

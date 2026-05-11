@@ -421,7 +421,17 @@ function ImportForm(props: {
   const { cancel, submit } = props;
 
   const methods = useForm<ImportRequest>({
-    defaultValues: {},
+    defaultValues: {
+      fineTuneFeatureConflict: false,
+      featureConflict: {
+        conditions: "skip",
+        description: "skip",
+        enabling: "skip",
+        name: "skip",
+        project: "skip",
+        tags: "skip"
+      }
+    },
   });
   const {
     handleSubmit,
@@ -1315,7 +1325,9 @@ export function ConflictStrategySelect({
   name: keyof NonNullable<ImportRequest["featureConflict"]>;
   tooltip?: React.JSX.Element;
 }) {
-  const { control } = useFormContext();
+  const { control } = useFormContext(
+    
+  );
   return (
     <label style={{ width: "100%" }}>
       {String(name).charAt(0).toUpperCase() + String(name).slice(1)}
@@ -1337,7 +1349,6 @@ export function ConflictStrategySelect({
             options={CONFLICT_STRATEGIES_OPTIONS.filter(
               ({ value }) => value !== "fail",
             )}
-            defaultValue={{ value: "skip", label: "skip" }}
           />
         )}
       />

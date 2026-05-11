@@ -40,7 +40,7 @@ case class ProjectAlreadyExists(name: String, tenant: String)
     )
 case object FeatureWithThisNameAlreadyExist
     extends IzanamiError(
-      message = s"A feature with this name already exist for this project.",
+      message = s"A feature with this name already exists for this project.",
       status = BAD_REQUEST
     )
 case object FeatureWithThisIdAlreadyExist

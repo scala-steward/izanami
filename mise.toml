@@ -68,3 +68,5 @@ run = "docker run --env IZANAMI_PG_URI=postgresql://postgres:postgres@host.docke
 [tasks."docker:build-demo"]
 run = "docker build -t izanami-test-standalone -f ./demo-docker-image/Dockerfile-pg-embeded ."
 
+[tasks."dev:db"]
+run = "PGGSSENCMODE=disable PGPASSWORD=postgres psql -h localhost -p 5432 -U postgres"

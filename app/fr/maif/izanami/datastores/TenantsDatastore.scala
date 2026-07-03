@@ -21,6 +21,7 @@ import fr.maif.izanami.models.TenantCreationRequest
 import fr.maif.izanami.utils.Datastore
 import fr.maif.izanami.utils.syntax.implicits.BetterJsValue
 import fr.maif.izanami.utils.syntax.implicits.BetterSyntax
+import fr.maif.izanami.utils.syntax.implicits.BetterFutureEither
 import fr.maif.izanami.web.ImportFailure
 import fr.maif.izanami.web.ImportPending
 import fr.maif.izanami.web.ImportState
@@ -40,6 +41,7 @@ import scala.util.Failure
 import scala.util.Success
 import scala.util.Try
 import fr.maif.izanami.utils.Done
+import fr.maif.izanami.utils.FutureEither
 
 class TenantsDatastore(val env: Env) extends Datastore {
   def deleteImportStatus(id: UUID): Future[Unit] = {
@@ -114,7 +116,7 @@ class TenantsDatastore(val env: Env) extends Datastore {
   def createTenant(
       tenantCreationRequest: TenantCreationRequest,
       user: UserInformation
-  ): Future[Either[IzanamiError, Tenant]] = {
+  ): FutureEither[Tenant] = {
 
     def createDBSchema(): Either[IzanamiError, Unit] = {
       val connectOptions = env.postgresql.connectOptions
@@ -234,14 +236,14 @@ class TenantsDatastore(val env: Env) extends Datastore {
               .map(_ => r)
           }
         }
-    })
+    }).toFEither
 
   }
 
   def updateTenant(
       name: String,
       updateRequest: TenantCreationRequest
-  ): Future[Either[IzanamiError, Unit]] = {
+  ): FutureEither[Done] = {
     env.postgresql.executeInTransaction(conn => {
       env.postgresql
         .queryOne(
@@ -251,11 +253,11 @@ class TenantsDatastore(val env: Env) extends Datastore {
           List(updateRequest.description, name),
           conn = Some(conn)
         ) { r => r.optString("name") }
-        .map(o => o.toRight(TenantDoesNotExists(name)).map(_ => ()))
+        .map(o => o.toRight(TenantDoesNotExists(name)).map(_ => Done.done()))
         .recover(
           env.postgresql.pgErrorPartialFunction.andThen(err => Left(err))
         )
-    })
+    }).toFEither
   }
 
   def readTenants(): Future[List[SimpleTenant]] = {
@@ -264,7 +266,7 @@ class TenantsDatastore(val env: Env) extends Datastore {
     ) { row => row.optSimpleTenant() }
   }
 
-  def readTenantsFiltered(names: Set[String]): Future[List[Tenant]] = {
+  def readTenantsFiltered(names: Set[String]): Future[List[SimpleTenant]] = {
     if (names.isEmpty) {
       Future.successful(List())
     } else {
@@ -274,12 +276,12 @@ class TenantsDatastore(val env: Env) extends Datastore {
            |FROM izanami.tenants
            |WHERE name=ANY($$1)""".stripMargin,
         List(names.toArray)
-      ) { row => row.optTenant() }
+      ) { row => row.optSimpleTenant() }
     }
 
   }
 
-  def readTenantByName(name: String): Future[Either[IzanamiError, Tenant]] = {
+  def readTenantByName(name: String): FutureEither[Tenant] = {
     env.postgresql
       .queryOne(
         s"""SELECT t.name, t.description
@@ -289,12 +291,13 @@ class TenantsDatastore(val env: Env) extends Datastore {
         List(name)
       ) { row => row.optTenant() }
       .map { _.toRight(TenantDoesNotExists(name)) }
+      .toFEither
   }
 
   def deleteTenant(
       name: String,
       user: UserInformation
-  ): Future[Either[IzanamiError, Unit]] = {
+  ): FutureEither[Done] = {
 
     env.postgresql.executeInTransaction(conn => {
       env.postgresql
@@ -314,7 +317,7 @@ class TenantsDatastore(val env: Env) extends Datastore {
                 s"""DROP SCHEMA "${deletedName}" CASCADE""",
                 conn = Some(conn)
               ) { _ => Some(()) }
-              .map(_ => Right(()))
+              .map(_ => Right(Done.done()))
         }
         .flatMap(r => {
           env.eventService
@@ -328,7 +331,7 @@ class TenantsDatastore(val env: Env) extends Datastore {
             )(conn)
             .map(_ => r)
         })
-    })
+    }).toFEither
 
   }
 }

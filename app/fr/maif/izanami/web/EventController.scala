@@ -35,11 +35,19 @@ import scala.concurrent.duration.DurationInt
 import scala.concurrent.duration.FiniteDuration
 import scala.util.Failure
 import scala.util.Success
+import fr.maif.izanami.web.ProjectController.parseStringSet
+import fr.maif.izanami.datastores.EventDatastore.TenantEventRequest
+import fr.maif.izanami.datastores.EventDatastore.parseSortOrder
+import scala.util.Try
+import fr.maif.izanami.datastores.EventDatastore.AscOrder
+import play.api.libs.json.JsNumber
+import play.api.libs.json.JsNull
 
 class EventController(
     val controllerComponents: ControllerComponents,
     val clientKeyAction: ClientApiKeyAction,
     val adminAuthAction: AdminAuthAction,
+    val tenantAuthAction: TenantAuthActionFactory,
     featureService: FeatureService
 )(implicit
     val env: Env
@@ -92,6 +100,84 @@ class EventController(
           )
         ).as(ContentTypes.EVENT_STREAM)
       )
+  }
+
+  def readEventsForTenant(
+      tenant: String,
+      order: Option[String],
+      users: Option[String],
+      types: Option[String],
+      start: Option[String],
+      end: Option[String],
+      cursor: Option[Long],
+      count: Int,
+      total: Option[Boolean],
+      features: Option[String],
+      projects: Option[String],
+      unknownIds: Option[String]
+  ): Action[AnyContent] = tenantAuthAction(tenant, RightLevel.Read).async {
+    implicit request =>
+      val unknownIdsAsSet = parseStringSet(unknownIds)
+      env.datastores.events
+        .listEventsForTenant(
+          tenant,
+          TenantEventRequest(
+            sortOrder =
+              order.flatMap(o => parseSortOrder(o)).getOrElse(AscOrder),
+            cursor = cursor,
+            count = count,
+            users = parseStringSet(users),
+            begin = start.flatMap(s => Try { Instant.parse(s) }.toOption),
+            end = end.flatMap(e => Try { Instant.parse(e) }.toOption),
+            eventTypes = parseStringSet(types)
+              .map(t => EventService.parseEventType(t))
+              .collect { case Some(t) => t },
+            total = total.getOrElse(false),
+            features = parseStringSet(features).concat(unknownIdsAsSet),
+            projects = parseStringSet(projects).concat(unknownIdsAsSet)
+          )
+        )
+        .flatMap {
+          case (events, maybeCount) => {
+            val tokenIds = events
+              .map(_.authentication)
+              .collect {
+                case EventAuthentication.TokenAuthentication(tokenId) =>
+                  tokenId
+              }
+              .toSet
+
+            env.datastores.personnalAccessToken
+              .findAccessTokenByIds(tokenIds)
+              .map(tokenNamesByIds => {
+                (
+                  events.map(e => {
+                    val json = Json
+                      .toJson(e)(EventService.eventFormat.writes(_))
+                      .as[JsObject]
+                    e.authentication match {
+                      case EventAuthentication.TokenAuthentication(tokenId) => {
+                        val tokenName = tokenNamesByIds.getOrElse(
+                          tokenId,
+                          s"<Deleted token> (token id was $tokenId)"
+                        )
+                        json ++ Json.obj("tokenName" -> tokenName)
+                      }
+                      case EventAuthentication.BackOfficeAuthentication => json
+                      case EventAuthentication.RootAuthentication       => json
+                    }
+                  }),
+                  maybeCount
+                )
+              })
+          }
+        }
+        .map {
+          case (events, maybeCount) => {
+            val jsonCount = maybeCount.map(JsNumber(_)).getOrElse(JsNull)
+            Ok(Json.obj("events" -> Json.toJson(events), "count" -> jsonCount))
+          }
+        }
   }
 
   def processForLegacyEndpoint(event: FeatureEvent): JsObject = {

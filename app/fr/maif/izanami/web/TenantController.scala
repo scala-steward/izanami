@@ -1,137 +1,36 @@
 package fr.maif.izanami.web
 
-import fr.maif.izanami.datastores.EventDatastore.AscOrder
-import fr.maif.izanami.datastores.EventDatastore.TenantEventRequest
-import fr.maif.izanami.datastores.EventDatastore.parseSortOrder
-import fr.maif.izanami.env.Env
-import fr.maif.izanami.events.EventAuthentication
-import fr.maif.izanami.events.EventService
 import fr.maif.izanami.models.*
 import fr.maif.izanami.models.RightLevel.Read
-import fr.maif.izanami.models.RightLevel.superiorOrEqualLevels
 import fr.maif.izanami.utils.syntax.implicits.BetterSyntax
-import fr.maif.izanami.v1.WasmManagerClient
-import fr.maif.izanami.web.ProjectController.parseStringSet
 import play.api.libs.json.*
 import play.api.mvc.*
 
-import java.time.Instant
 import scala.concurrent.ExecutionContext
-import scala.concurrent.Future
-import scala.util.Try
+import fr.maif.izanami.services.TenantService
 
 sealed trait ProjectChoiceStrategy
 case class DeduceProject(fieldCount: Int = 1) extends ProjectChoiceStrategy
 case class FixedProject(name: String) extends ProjectChoiceStrategy
 
 class TenantController(
-    val env: Env,
     val controllerComponents: ControllerComponents,
-    val tenantAuthAction: TenantAuthActionFactory,
-    val adminAuthAction: AdminAuthAction,
-    val tenantRightsAuthAction: TenantRightsAction,
-    val wasmManagerClient: WasmManagerClient,
-    val personnalAccessTokenAuthAction: PersonnalAccessTokenAdminAuthActionFactory,
-    val personnalAccessTokenTenantAuthAction: PersonnalAccessTokenTenantAuthActionFactory,
-    val personnalAccessTokenTenantRightsAuthAction: PersonnalAccessTokenTenantRightsActionFactory
-) extends BaseController {
-  implicit val ec: ExecutionContext = env.executionContext
-
-  def readEventsForTenant(
-      tenant: String,
-      order: Option[String],
-      users: Option[String],
-      types: Option[String],
-      start: Option[String],
-      end: Option[String],
-      cursor: Option[Long],
-      count: Int,
-      total: Option[Boolean],
-      features: Option[String],
-      projects: Option[String],
-      unknownIds: Option[String]
-  ): Action[AnyContent] = tenantAuthAction(tenant, RightLevel.Read).async {
-    implicit request =>
-      val unknownIdsAsSet = parseStringSet(unknownIds)
-      env.datastores.events
-        .listEventsForTenant(
-          tenant,
-          TenantEventRequest(
-            sortOrder =
-              order.flatMap(o => parseSortOrder(o)).getOrElse(AscOrder),
-            cursor = cursor,
-            count = count,
-            users = parseStringSet(users),
-            begin = start.flatMap(s => Try { Instant.parse(s) }.toOption),
-            end = end.flatMap(e => Try { Instant.parse(e) }.toOption),
-            eventTypes = parseStringSet(types)
-              .map(t => EventService.parseEventType(t))
-              .collect { case Some(t) => t },
-            total = total.getOrElse(false),
-            features = parseStringSet(features).concat(unknownIdsAsSet),
-            projects = parseStringSet(projects).concat(unknownIdsAsSet)
-          )
-        )
-        .flatMap {
-          case (events, maybeCount) => {
-            val tokenIds = events
-              .map(_.authentication)
-              .collect {
-                case EventAuthentication.TokenAuthentication(tokenId) =>
-                  tokenId
-              }
-              .toSet
-
-            env.datastores.personnalAccessToken
-              .findAccessTokenByIds(tokenIds)
-              .map(tokenNamesByIds => {
-                (
-                  events.map(e => {
-                    val json = Json
-                      .toJson(e)(EventService.eventFormat.writes(_))
-                      .as[JsObject]
-                    e.authentication match {
-                      case EventAuthentication.TokenAuthentication(tokenId) => {
-                        val tokenName = tokenNamesByIds.getOrElse(
-                          tokenId,
-                          s"<Deleted token> (token id was $tokenId)"
-                        )
-                        json ++ Json.obj("tokenName" -> tokenName)
-                      }
-                      case EventAuthentication.BackOfficeAuthentication => json
-                      case EventAuthentication.RootAuthentication       => json
-                    }
-                  }),
-                  maybeCount
-                )
-              })
-          }
-        }
-        .map {
-          case (events, maybeCount) => {
-            val jsonCount = maybeCount.map(JsNumber(_)).getOrElse(JsNull)
-            Ok(Json.obj("events" -> Json.toJson(events), "count" -> jsonCount))
-          }
-        }
-  }
+    private val tenantAuthAction: TenantAuthActionFactory,
+    private val personnalAccessTokenAuthAction: PersonnalAccessTokenAdminAuthActionFactory,
+    private val personnalAccessTokenTenantAuthAction: PersonnalAccessTokenTenantAuthActionFactory,
+    private val personnalAccessTokenTenantRightsAuthAction: PersonnalAccessTokenTenantRightsActionFactory,
+    private val tenantService: TenantService
+)(implicit ec: ExecutionContext) extends BaseController {
 
   def updateTenant(name: String): Action[JsValue] =
     tenantAuthAction(name, RightLevel.Admin).async(parse.json) {
       implicit request =>
         Tenant.tenantReads.reads(request.body) match {
           case JsSuccess(value, _) =>
-            if (name != value.name) {
-              BadRequest(
-                Json.obj(
-                  "message" -> "Modification of a tenant name is not permitted"
-                )
-              ).future
-            } else {
-              env.datastores.tenants.updateTenant(name, value).map {
-                case Left(err)    => err.toHttpResponse
-                case Right(value) => NoContent
-              }
-            }
+            tenantService.updateTenant(
+              name = name,
+              updateRequest = value
+            ).toResult(_ => NoContent)
           case JsError(errors) =>
             BadRequest(Json.obj("message" -> "Bad body format")).future
         }
@@ -144,14 +43,9 @@ class TenantController(
           case JsError(e) =>
             BadRequest(Json.obj("message" -> "bad body format")).future
           case JsSuccess(tenant, _) => {
-            env.datastores.tenants
+            tenantService
               .createTenant(tenant, request.user)
-              .map(maybeTenant =>
-                maybeTenant.fold(
-                  err => Results.Status(err.status)(Json.toJson(err)),
-                  tenant => Created(Json.toJson(tenant))
-                )
-              )
+              .toResult(tenant => Created(Json.toJson(tenant)))
           }
         }
     }
@@ -159,34 +53,15 @@ class TenantController(
   def readTenants(right: Option[RightLevel]): Action[AnyContent] =
     personnalAccessTokenTenantRightsAuthAction(ReadTenants).async {
       implicit request =>
-        if (request.user.admin) {
-          env.datastores.tenants
-            .readTenants()
-            .map(tenants =>
-              Ok(Json.toJson(tenants)(Writes.seq(Tenant.simpleTenantWrite)))
-            )
-        } else {
-          val minimumRightLevel = right.getOrElse(RightLevel.Read)
-          val allowedTenants = Option(request.user.tenantRights)
-            .map(m =>
-              m.filter { case (name, level) =>
-                superiorOrEqualLevels(minimumRightLevel).contains(level)
-              }.keys
-                .toSet
-            )
-            .getOrElse(Set())
-          env.datastores.tenants
-            .readTenantsFiltered(allowedTenants)
-            .map(tenants => Ok(Json.toJson(tenants)))
-        }
+        tenantService.readTenants(user = request.user, right = right)
+          .map(tenants =>
+            Ok(Json.toJson(tenants)(Writes.seq(Tenant.simpleTenantWrite)))
+          )
     }
 
   def deleteTenant(name: String): Action[AnyContent] =
     (tenantAuthAction(name, RightLevel.Admin)).async { implicit request =>
-      env.datastores.tenants.deleteTenant(name, request.user).map {
-        case Left(err) => err.toHttpResponse
-        case Right(_)  => NoContent
-      }
+      tenantService.deleteTenant(name, request.user).toResult(_ => NoContent)
     }
 
   def readTenant(name: String): Action[AnyContent] =
@@ -195,36 +70,13 @@ class TenantController(
       minimumLevel = Read,
       operation = ReadTenant
     ).async { implicit request =>
-      env.datastores.tenants
-        .readTenantByName(name)
-        .flatMap(maybeTenant => {
-          maybeTenant.fold(
-            err =>
-              Future.successful(Results.Status(err.status)(Json.toJson(err))),
-            tenant => {
-              for (
-                projects <- {
-                  env.datastores.projects.readTenantProjectForUser(
-                    tenant.name,
-                    request.user.username
-                  )
-                };
-                tags <- env.datastores.tags.readTags(tenant.name)
-              )
-                yield {
-                  Ok(
-                    Json.toJson(
-                      SimpleTenantWithProjectAndTags(
-                        name = tenant.name,
-                        projects = projects,
-                        description = tenant.description,
-                        tags = tags
-                      )
-                    )(Tenant.simpleTenantWithProjectWrites)
-                  )
-                }
-            }
+      tenantService.readTenant(name = name, user = request.user).toResult(
+        tenant =>
+          Ok(
+            Json.toJson(
+              tenant
+            )(Tenant.simpleTenantWithProjectWrites)
           )
-        })
+      )
     }
 }

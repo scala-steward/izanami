@@ -1,12 +1,10 @@
 package fr.maif.izanami.web
 
-import play.api.libs.json.JsError.toJson
 import play.api.libs.json.JsValue
 import play.api.libs.json.Json
 import play.api.mvc.*
 
 import scala.concurrent.ExecutionContext
-import scala.concurrent.Future
 import fr.maif.izanami.services.RightService
 import fr.maif.izanami.services.APIKeyService
 import fr.maif.izanami.models.RightLevel

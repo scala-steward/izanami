@@ -1,6 +1,5 @@
 package fr.maif.izanami.web
 
-import fr.maif.izanami.env.Env
 import fr.maif.izanami.models.ReadTenant
 import fr.maif.izanami.models.RightLevel
 import fr.maif.izanami.models.RightLevel.Read
@@ -14,14 +13,14 @@ import play.api.mvc.*
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.Future
+import fr.maif.izanami.services.TagService
 
 class TagController(
-    val env: Env,
     val controllerComponents: ControllerComponents,
-    val authAction: TenantAuthActionFactory,
-    val personnalAccessTokenTenantAuthAction: PersonnalAccessTokenTenantAuthActionFactory
-) extends BaseController {
-  implicit val ec: ExecutionContext = env.executionContext;
+    private val authAction: TenantAuthActionFactory,
+    private val personnalAccessTokenTenantAuthAction: PersonnalAccessTokenTenantAuthActionFactory,
+    private val tagService: TagService
+)(implicit ec: ExecutionContext) extends BaseController {
 
   def createTag(tenant: String): Action[JsValue] =
     authAction(tenant, RightLevel.Write).async(parse.json) {
@@ -31,14 +30,7 @@ class TagController(
           case JsError(e) =>
             BadRequest(Json.obj("message" -> "bad body format")).future
           case JsSuccess(tag, _) => {
-            env.datastores.tags
-              .createTag(tag, tenant)
-              .map(maybeTag =>
-                maybeTag.fold(
-                  err => err.toHttpResponse,
-                  tag => Created(Json.toJson(tag))
-                )
-              )
+            tagService.createTag(tag, tenant).toResult(tag => Created(Json.toJson(tag)))
           }
         }
     }
@@ -46,10 +38,7 @@ class TagController(
   def deleteTag(tenant: String, name: String): Action[AnyContent] =
     authAction(tenant, RightLevel.Write).async {
       implicit request: Request[AnyContent] =>
-        env.datastores.tags.deleteTag(tenant, name).map {
-          case Left(err)    => err.toHttpResponse
-          case Right(value) => NoContent
-        }
+        tagService.deleteTag(tenant, name).toResult(_ => NoContent)
     }
 
   def readTag(tenant: String, name: String): Action[AnyContent] =
@@ -59,14 +48,7 @@ class TagController(
       operation = ReadTenant
     ).async {
       implicit request: Request[AnyContent] =>
-        env.datastores.tags
-          .readTag(tenant, name)
-          .map(maybeTag =>
-            maybeTag.fold(
-              err => Results.Status(err.status)(Json.toJson(err)),
-              tag => Ok(Json.toJson(tag))
-            )
-          )
+        tagService.readTag(tenant, name).toResult(tag => Ok(Json.toJson(tag)))
     }
 
   def readTags(tenant: String): Action[AnyContent] =
@@ -75,7 +57,7 @@ class TagController(
       minimumLevel = Read,
       operation = ReadTenant
     ).async { implicit request: Request[AnyContent] =>
-      env.datastores.tags.readTags(tenant).map(tags => Ok(Json.toJson(tags)))
+      tagService.readTags(tenant).map(tags => Ok(Json.toJson(tags)))
     }
 
   def updateTag(tenant: String, currentName: String): Action[JsValue] =
@@ -85,16 +67,9 @@ class TagController(
           case JsError(e) =>
             BadRequest(Json.obj("message" -> "bad body format")).future
           case JsSuccess(tag, _) => {
-            env.datastores.tags
-              .updateTag(tag, tenant, currentName)
-              .map(maybeTenant =>
-                maybeTenant.fold(
-                  err => Results.Status(err.status)(Json.toJson(err)),
-                  _ => NoContent
-                )
-              )
+            tagService.updateTag(tag, tenant, currentName)
+            .toResult(_ => NoContent)
           }
         }
     }
-
 }

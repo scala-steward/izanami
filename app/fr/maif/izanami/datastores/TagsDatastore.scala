@@ -12,14 +12,17 @@ import fr.maif.izanami.models.Tenant
 import fr.maif.izanami.utils.Datastore
 import io.vertx.sqlclient.Row
 import io.vertx.sqlclient.SqlConnection
+import fr.maif.izanami.utils.syntax.implicits.BetterFutureEither
 
 import scala.concurrent.Future
+import fr.maif.izanami.utils.FutureEither
+import fr.maif.izanami.utils.Done
 
 class TagsDatastore(val env: Env) extends Datastore {
   def createTag(
       tagCreationRequest: TagCreationRequest,
       tenant: String
-  ): Future[Either[IzanamiError, Tag]] = {
+  ): FutureEither[Tag] = {
     Tenant.isTenantValid(tenant)
     env.postgresql
       .queryOne(
@@ -33,7 +36,7 @@ class TagsDatastore(val env: Env) extends Datastore {
       .recover { case ex =>
         logger.error("Failed to insert tag", ex)
         Left(InternalServerError())
-      }
+      }.toFEither
   }
 
   def createTags(
@@ -61,7 +64,7 @@ class TagsDatastore(val env: Env) extends Datastore {
   def readTag(
       tenant: String,
       name: String
-  ): Future[Either[IzanamiError, Tag]] = {
+  ): FutureEither[Tag] = {
     Tenant.isTenantValid(tenant)
     env.postgresql
       .queryOne(
@@ -69,19 +72,21 @@ class TagsDatastore(val env: Env) extends Datastore {
         List(name)
       ) { row => row.optTag() }
       .map { _.toRight(TagDoesNotExists(name)) }
+      .toFEither
   }
 
   def deleteTag(
       tenant: String,
       name: String
-  ): Future[Either[IzanamiError, Unit]] = {
+  ): FutureEither[Done] = {
     Tenant.isTenantValid(tenant)
     env.postgresql
       .queryOne(
         s"""DELETE FROM "${tenant}".tags WHERE name=$$1 returning name, id""",
         List(name)
       ) { row => row.optTag() }
-      .map { _.toRight(TagDoesNotExists(name)).map(_ => ()) }
+      .map { _.toRight(TagDoesNotExists(name)).map(_ => Done.done()) }
+      .toFEither
   }
 
   def readTags(
@@ -108,7 +113,7 @@ class TagsDatastore(val env: Env) extends Datastore {
       tag: Tag,
       tenant: String,
       currentName: String
-  ): Future[Either[IzanamiError, Tag]] = {
+  ): FutureEither[Tag] = {
     Tenant.isTenantValid(tenant)
     env.postgresql
       .queryOne(
@@ -122,7 +127,7 @@ class TagsDatastore(val env: Env) extends Datastore {
       .recover { case ex =>
         logger.error("Failed to update tag", ex)
         Left(InternalServerError())
-      }
+      }.toFEither
   }
 }
 

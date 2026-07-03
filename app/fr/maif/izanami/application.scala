@@ -38,6 +38,7 @@ import fr.maif.izanami.datastores.TenantsDatastore
 import fr.maif.izanami.datastores.ProjectsDatastore
 import fr.maif.izanami.datastores.TagsDatastore
 import fr.maif.izanami.services.TenantService
+import fr.maif.izanami.services.TagService
 
 class IzanamiLoader extends ApplicationLoader {
   Logger("IzanamiLoader")
@@ -134,6 +135,7 @@ class IzanamiComponentsInstances(
   val tenantDatastore: TenantsDatastore = env.datastores.tenants
   val projectsDatastore: ProjectsDatastore = env.datastores.projects
   val tagsDatastore: TagsDatastore = env.datastores.tags
+  lazy val tagService: TagService = wire[TagService]
   lazy val tenantService: TenantService = wire[TenantService]
   lazy val featureService: FeatureService = wire[FeatureService]
   lazy val apiKeyService: APIKeyService = wire[APIKeyService]

@@ -25,6 +25,15 @@ class LoginAPISpec extends BaseAPISpec {
   )
 
   "Login endpoint" should {
+    "allow to login with password containg ':' character" in {
+      TestSituationBuilder()
+        .withUsers(TestUser("test-user", "foo:barbaz123"))
+        .build()
+
+      val response = login("test-user", "foo:barbaz123")
+      response.status mustBe OK
+      response.cookies.find(c => c.name.equals("token")) mustBe defined
+    }
     "set cookie if login / password is correct" in {
       TestSituationBuilder()
         .withUsers(TestUser("test-user", "password1234"))
